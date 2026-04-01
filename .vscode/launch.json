@@ -1,0 +1,14 @@
+{
+    "configurations": [
+        {
+            "type": "java",
+            "name": "Spring Boot-XhxtApplication<xhxt-backend>",
+            "request": "launch",
+            "cwd": "${workspaceFolder}",
+            "mainClass": "lz.xhxt.XhxtApplication",
+            "projectName": "xhxt-backend",
+            "args": "",
+            "envFile": "${workspaceFolder}/.env"
+        }
+    ]
+}

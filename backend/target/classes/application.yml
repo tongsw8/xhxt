@@ -1,0 +1,51 @@
+server:
+  port: 8866
+  servlet:
+    context-path: /xhxt
+
+logging:
+  level:
+    root: INFO
+    lz.xhxt: INFO
+
+spring:
+  datasource:
+    druid:
+      driver-class-name: com.mysql.cj.jdbc.Driver
+      url: jdbc:mysql://192.168.150.100:3306/xhxt_db?characterEncoding=utf8&useSSL=false&serverTimezone=Asia/Shanghai
+      username: root
+      password: 1234
+
+  servlet:
+    multipart:
+      enabled: true
+      file-size-threshold: 0
+      max-file-size: 2MB
+      max-request-size: 10MB
+      resolve-lazily: false
+
+mybatis-plus:
+  configuration:
+    map-underscore-to-camel-case: true
+  global-config:
+    db-config:
+      id-type: auto
+  type-aliases-package: lz.xhxt.entity
+
+xhxt:
+  jwt:
+    secret: xhxt-change-me-in-production
+    expire-minutes: 120
+
+page:
+  # 鲜花图片存放路径
+  flowerImg: E:\Download\temp2\
+  # 用户头像存放路径
+  txImg: E:\Download\temp2\tx\
+  # 前台展示页面静态图片存放路径
+  pageImg: E:\Download\temp2\pageImg\
+  # 验证码滑块图片存放路径
+  verifyImg: E:\Download\temp2\pageImg\verify\
+  # 公告图片存放路径
+  noticeImg: E:\Download\temp2\pageImg\notice\
+
