@@ -38,6 +38,12 @@
         <div class="r-head">{{ r.userName }} · {{ r.createTime }}</div>
         <div class="r-content">{{ r.content }}</div>
         <el-button size="small" text @click="onLikeReview(r)">👍 {{ r.likeCount || 0 }}{{ r.liked ? '（已赞）' : '' }}</el-button>
+        <div v-if="(r.replies || []).length" class="reply-block">
+          <div v-for="rp in r.replies" :key="rp.id" class="reply-item">
+            <span class="reply-tag">官方回复</span>
+            <span>{{ rp.content }}</span>
+          </div>
+        </div>
       </div>
     </el-card>
 

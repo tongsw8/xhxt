@@ -44,6 +44,10 @@ const router = createRouter({
 })
 
 router.beforeEach((to) => {
+  const tokenFromQuery = typeof to.query?.token === 'string' ? to.query.token : ''
+  if (tokenFromQuery) {
+    localStorage.setItem('token', tokenFromQuery)
+  }
   if (to.name !== 'Login' && !localStorage.getItem('token')) return { name: 'Login' }
   return true
 })

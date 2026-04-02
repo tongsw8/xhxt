@@ -3,7 +3,7 @@
     <div class="hero-section">
       <el-carousel height="220px" indicator-position="outside" v-if="banners.length">
         <el-carousel-item v-for="b in banners" :key="b.id">
-          <div class="hero-slide" :style="{ backgroundImage: `url(${b.imgUrl})` }">
+          <div class="hero-slide" :style="{ backgroundImage: `url(${b.imgUrl})` }" @click="onBannerClick(b)">
             <div class="hero-mask">
               <h1 class="hero-title">{{ b.title || '欢迎来到 XHXT 花卉商城' }}</h1>
               <p class="hero-subtitle">精选鲜花，传递美好祝福</p>
@@ -77,6 +77,14 @@ async function loadStats() {
 
 function go(path) { router.push(path) }
 
+function onBannerClick(b) {
+  if (b?.linkUrl && /^\/shop\/detail\/\d+/.test(b.linkUrl)) {
+    router.push(b.linkUrl)
+    return
+  }
+  go('/shop')
+}
+
 onMounted(async () => {
   await Promise.all([loadBanners(), loadStats()])
 })
@@ -85,7 +93,7 @@ onMounted(async () => {
 <style scoped>
 .dashboard { width: 100%; }
 .hero-section { margin-bottom: 32px; }
-.hero-slide { height: 220px; border-radius: 12px; background-size: cover; background-position: center; overflow: hidden; }
+.hero-slide { height: 220px; border-radius: 12px; background-size: cover; background-position: center; overflow: hidden; cursor: pointer; }
 .hero-mask { width: 100%; height: 100%; background: linear-gradient(135deg, rgba(29, 78, 216, 0.55), rgba(109, 40, 217, 0.55)); color: #fff; display: flex; flex-direction: column; align-items: center; justify-content: center; }
 .hero-fallback { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 12px; padding: 48px 32px; color: #fff; text-align: center; }
 .hero-title { font-size: 32px; font-weight: 700; margin: 0 0 12px; }

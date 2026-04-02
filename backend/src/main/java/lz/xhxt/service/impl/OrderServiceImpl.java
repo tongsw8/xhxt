@@ -325,9 +325,21 @@ public class OrderServiceImpl implements OrderService {
                 .eq(Comment::getTargetType, "PRODUCT_REVIEW")
                 .eq(Comment::getTargetId, productId)
                 .eq(Comment::getStatus, 1)
-                .orderByDesc(Comment::getCreateTime));
+                .orderByAsc(Comment::getCreateTime));
+
+        java.util.Set<Long> allCommentIds = comments.stream()
+                .map(Comment::getId)
+                .filter(java.util.Objects::nonNull)
+                .collect(java.util.stream.Collectors.toSet());
+
+        List<Comment> roots = comments.stream().filter(c -> {
+            if (c.getId() == null) return false;
+            if (c.getIsStaff() != null && c.getIsStaff() == 1) return false;
+            Long p = c.getParentId();
+            return p == null || p == 0L || !allCommentIds.contains(p);
+        }).collect(java.util.stream.Collectors.toList());
         List<Map<String, Object>> rows = new ArrayList<>();
-        for (Comment c : comments) {
+        for (Comment c : roots) {
             User u = userMapper.selectById(c.getUserId());
             int likeCount = userActionMapper.selectCount(new LambdaQueryWrapper<UserAction>()
                     .eq(UserAction::getTargetType, "PRODUCT_REVIEW")
@@ -342,6 +354,20 @@ public class OrderServiceImpl implements OrderService {
                         .eq(UserAction::getActionType, "LIKE"));
                 liked = likedCnt != null && likedCnt > 0;
             }
+
+            List<Map<String, Object>> replies = comments.stream()
+                    .filter(x -> x.getIsStaff() != null && x.getIsStaff() == 1 && x.getParentId() != null && x.getParentId().equals(c.getId()))
+                    .map(x -> {
+                        User su = userMapper.selectById(x.getUserId());
+                        Map<String, Object> r = new HashMap<>();
+                        r.put("id", x.getId());
+                        r.put("content", x.getContent());
+                        r.put("createTime", x.getCreateTime());
+                        r.put("userName", su == null ? "官方" : (su.getNickname() == null ? su.getAccount() : su.getNickname()));
+                        r.put("isStaff", 1);
+                        return r;
+                    }).collect(java.util.stream.Collectors.toList());
+
             Map<String, Object> m = new HashMap<>();
             m.put("id", c.getId());
             m.put("content", c.getContent());
@@ -349,8 +375,10 @@ public class OrderServiceImpl implements OrderService {
             m.put("userName", u == null ? "匿名" : (u.getNickname() == null ? u.getAccount() : u.getNickname()));
             m.put("likeCount", likeCount);
             m.put("liked", liked);
+            m.put("replies", replies);
             rows.add(m);
         }
+        java.util.Collections.reverse(rows);
         return Result.ok(rows);
     }
 

@@ -9,6 +9,7 @@
           <el-table-column prop="sortNo" label="序号" width="90" />
           <el-table-column label="图片" width="130"><template #default="{ row }"><el-image :src="row.imgUrl" fit="cover" style="width:80px;height:44px;border-radius:6px" /></template></el-table-column>
           <el-table-column prop="title" label="标题" />
+          <el-table-column label="关联商品" min-width="180"><template #default="{ row }">{{ row.linkUrl ? bannerProductText(row.linkUrl) : '未关联' }}</template></el-table-column>
           <el-table-column label="是否展示" width="120"><template #default="{ row }"><el-switch :model-value="row.status === 1" @change="(v) => toggleBanner(row, v)" /></template></el-table-column>
           <el-table-column label="操作" width="220"><template #default="{ row }"><el-button size="small" @click="openBanner(row)">编辑</el-button><el-button size="small" type="danger" @click="removeBanner(row.id)">删除</el-button></template></el-table-column>
         </el-table>
@@ -45,6 +46,11 @@
           <div v-if="bannerDialog.form.imgUrl" style="margin-top:8px"><el-image :src="bannerDialog.form.imgUrl" fit="cover" style="width:120px;height:68px;border-radius:8px" /></div>
         </el-form-item>
         <el-form-item label="序号"><el-input-number v-model="bannerDialog.form.sortNo" :min="0" /></el-form-item>
+        <el-form-item label="关联商品">
+          <el-select v-model="bannerDialog.productId" filterable clearable placeholder="可选，选择后用户端点击轮播图直达商品详情" style="width:100%" @change="onBannerProductChange">
+            <el-option v-for="p in productOptions" :key="p.id" :label="`${p.productName}（ID:${p.id}）`" :value="p.id" />
+          </el-select>
+        </el-form-item>
         <el-form-item label="是否展示"><el-radio-group v-model="bannerDialog.form.status"><el-radio :value="1">展示</el-radio><el-radio :value="0">隐藏</el-radio></el-radio-group></el-form-item>
       </el-form>
       <template #footer><el-button @click="bannerDialog.visible=false">取消</el-button><el-button type="primary" @click="saveBanner">保存</el-button></template>
@@ -77,8 +83,13 @@ import http from '../api/http'
 const tab = ref('b')
 const banners = ref([])
 const notices = ref([])
+const productOptions = ref([])
 
-const bannerDialog = reactive({ visible: false, form: { id: null, title: '', imgUrl: '', sortNo: 0, status: 1 } })
+const bannerDialog = reactive({
+  visible: false,
+  productId: null,
+  form: { id: null, title: '', imgUrl: '', linkUrl: '', sortNo: 0, status: 1 },
+})
 const noticeDialog = reactive({ visible: false, form: { id: null, title: '', coverImg: '', content: '', status: 1, isTop: 0 } })
 
 async function loadBanners() {
@@ -89,8 +100,29 @@ async function loadNotices() {
   const res = await http.get('/content/admin/notice/list')
   notices.value = res.data?.data || []
 }
+async function loadProducts() {
+  const res = await http.get('/admin/product/list', { params: { pageNo: 1, pageSize: 500 } })
+  productOptions.value = res.data?.data?.records || []
+}
 
-function openBanner(row) { bannerDialog.form = row ? { ...row } : { id: null, title: '', imgUrl: '', sortNo: 0, status: 1 }; bannerDialog.visible = true }
+function bannerProductText(linkUrl) {
+  const m = String(linkUrl || '').match(/\/shop\/detail\/(\d+)/)
+  if (!m) return '未关联'
+  const id = Number(m[1])
+  const p = productOptions.value.find(v => Number(v.id) === id)
+  return p ? `${p.productName}（ID:${p.id}）` : `商品ID:${id}`
+}
+
+function openBanner(row) {
+  bannerDialog.form = row ? { ...row } : { id: null, title: '', imgUrl: '', linkUrl: '', sortNo: 0, status: 1 }
+  const m = String(bannerDialog.form.linkUrl || '').match(/\/shop\/detail\/(\d+)/)
+  bannerDialog.productId = m ? Number(m[1]) : null
+  bannerDialog.visible = true
+}
+function onBannerProductChange(v) {
+  bannerDialog.form.linkUrl = v ? `/shop/detail/${v}` : ''
+}
+
 function openNotice(row) { noticeDialog.form = row ? { ...row } : { id: null, title: '', coverImg: '', content: '', status: 1, isTop: 0 }; noticeDialog.visible = true }
 
 async function uploadBannerImage(option) {
@@ -114,5 +146,5 @@ async function toggleNoticeTop(row) { await http.post('/content/admin/notice/top
 async function removeBanner(id) { await http.delete(`/content/admin/banner/delete/${id}`); ElMessage.success('删除成功'); await loadBanners() }
 async function removeNotice(id) { await http.delete(`/content/admin/notice/delete/${id}`); ElMessage.success('删除成功'); await loadNotices() }
 
-onMounted(async () => { await Promise.all([loadBanners(), loadNotices()]) })
+onMounted(async () => { await Promise.all([loadBanners(), loadNotices(), loadProducts()]) })
 </script>

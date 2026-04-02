@@ -152,12 +152,16 @@ async function shield(row) {
 
 function openSource(row) {
   if (!row?.sourcePath) return
-  window.open(`${userBase}${row.sourcePath}`, '_blank')
+  const token = localStorage.getItem('token') || ''
+  const sep = row.sourcePath.includes('?') ? '&' : '?'
+  window.open(`${userBase}${row.sourcePath}${sep}token=${encodeURIComponent(token)}`, '_blank')
 }
 
 function openSourceByThread() {
   if (!threadData.value?.sourcePath) return
-  window.open(`${userBase}${threadData.value.sourcePath}`, '_blank')
+  const token = localStorage.getItem('token') || ''
+  const sep = threadData.value.sourcePath.includes('?') ? '&' : '?'
+  window.open(`${userBase}${threadData.value.sourcePath}${sep}token=${encodeURIComponent(token)}`, '_blank')
 }
 
 onMounted(load)
