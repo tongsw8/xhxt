@@ -26,6 +26,21 @@
       </div>
     </el-card>
 
+    <el-card class="review-card" v-if="product">
+      <template #header>
+        <div class="review-head">
+          <span>商品评价</span>
+          <el-tag type="info">共 {{ reviews.length }} 条</el-tag>
+        </div>
+      </template>
+      <el-empty v-if="reviews.length === 0" description="暂无评价" />
+      <div v-for="r in reviews" :key="r.id" class="review-item">
+        <div class="r-head">{{ r.userName }} · {{ r.createTime }}</div>
+        <div class="r-content">{{ r.content }}</div>
+        <el-button size="small" text @click="onLikeReview(r)">👍 {{ r.likeCount || 0 }}{{ r.liked ? '（已赞）' : '' }}</el-button>
+      </div>
+    </el-card>
+
     <el-dialog v-model="addressVisible" title="选择收货地址" width="720px">
       <el-radio-group v-model="selectedAddressId" style="display:flex;flex-direction:column;gap:8px">
         <el-radio v-for="a in addressList" :key="a.id" :value="a.id">
@@ -55,7 +70,7 @@ import { ElMessage } from 'element-plus'
 import { fetchProductDetail } from '../api/shop'
 import { addToCart } from '../api/cart'
 import { listAddress } from '../api/user'
-import { createDirectOrder } from '../api/order'
+import { createDirectOrder, likeProductReview, listProductReviews } from '../api/order'
 
 const route = useRoute()
 const router = useRouter()
@@ -67,6 +82,7 @@ const addressList = ref([])
 const selectedAddressId = ref(null)
 const cardMessage = ref('')
 const deliveryExpectTime = ref('')
+const reviews = ref([])
 
 const backendOrigin = (() => {
   const base = import.meta.env.VITE_BASE_API || ''
@@ -82,15 +98,27 @@ const imageList = computed(() => {
   return arr
 })
 
+async function loadReviews() {
+  if (!product.value?.id) return
+  const { data } = await listProductReviews(product.value.id)
+  reviews.value = data.data || []
+}
+
 async function loadDetail() {
   loading.value = true
   try {
     const id = route.params.id
     const res = await fetchProductDetail(id)
     product.value = res.data?.data || null
+    await loadReviews()
   } finally {
     loading.value = false
   }
+}
+
+async function onLikeReview(row) {
+  await likeProductReview(row.id)
+  await loadReviews()
 }
 
 async function addCart() {
@@ -143,4 +171,9 @@ onMounted(loadDetail)
 .stock { color: #475569; margin-top: 8px; }
 .buy-row { margin-top: 12px; display: flex; align-items: center; gap: 8px; }
 .actions { margin-top: 16px; display: flex; gap: 10px; }
+.review-card { margin-top: 14px; border-radius: 12px; }
+.review-head { display: flex; justify-content: space-between; align-items: center; }
+.review-item { padding: 10px 0; border-bottom: 1px dashed #e5e7eb; }
+.r-head { color:#64748b; font-size: 12px; margin-bottom: 4px; }
+.r-content { color:#0f172a; margin-bottom: 6px; }
 </style>

@@ -19,3 +19,19 @@ export function payOrder(orderNo) {
 export function listOrders() {
   return http.get('/user/order/list')
 }
+
+export function urgeOrder(orderNo) {
+  return http.post(`/user/order/urge/${orderNo}`)
+}
+
+export function listProductReviews(productId) {
+  return http.get('/user/order/review/list', { params: { productId } })
+}
+
+export function addProductReview(orderNo, productId, content) {
+  return http.post('/user/order/review/add', null, { params: { orderNo, productId, content } })
+}
+
+export function likeProductReview(commentId) {
+  return http.post(`/user/order/review/like/${commentId}`)
+}

@@ -32,6 +32,10 @@
           <span class="menu-icon">💬</span>
           <span>社区</span>
         </el-menu-item>
+        <el-menu-item index="/notice" class="menu-item">
+          <span class="menu-icon">📢</span>
+          <span>公告</span>
+        </el-menu-item>
         <el-menu-item index="/orders" class="menu-item">
           <span class="menu-icon">📦</span>
           <span>订单中心</span>

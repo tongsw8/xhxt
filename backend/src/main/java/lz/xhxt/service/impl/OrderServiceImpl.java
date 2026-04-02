@@ -3,14 +3,20 @@ package lz.xhxt.service.impl;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import lz.xhxt.common.Result;
 import lz.xhxt.common.ResultCode;
+import lz.xhxt.entity.Comment;
 import lz.xhxt.entity.ProductInfo;
+import lz.xhxt.entity.User;
+import lz.xhxt.entity.UserAction;
 import lz.xhxt.entity.UserAddress;
 import lz.xhxt.entity.UserCart;
 import lz.xhxt.entity.UserOrder;
 import lz.xhxt.entity.UserOrderItem;
+import lz.xhxt.mapper.CommentMapper;
 import lz.xhxt.mapper.ProductInfoMapper;
+import lz.xhxt.mapper.UserActionMapper;
 import lz.xhxt.mapper.UserAddressMapper;
 import lz.xhxt.mapper.UserCartMapper;
+import lz.xhxt.mapper.UserMapper;
 import lz.xhxt.mapper.UserOrderItemMapper;
 import lz.xhxt.mapper.UserOrderMapper;
 import lz.xhxt.service.OrderService;
@@ -44,6 +50,15 @@ public class OrderServiceImpl implements OrderService {
 
     @Resource
     private UserAddressMapper userAddressMapper;
+
+    @Resource
+    private CommentMapper commentMapper;
+
+    @Resource
+    private UserActionMapper userActionMapper;
+
+    @Resource
+    private UserMapper userMapper;
 
     @Override
     @Transactional(rollbackFor = Exception.class)
@@ -249,11 +264,134 @@ public class OrderServiceImpl implements OrderService {
             r.put("receiverAddress", order.getReceiverAddress());
             r.put("cardMessage", order.getCardMessage());
             r.put("deliveryExpectTime", order.getDeliveryExpectTime());
+            r.put("urgeShip", order.getUrgeShip());
             r.put("payTime", order.getPayTime());
             r.put("createTime", order.getCreateTime());
             rows.add(r);
         }
         return Result.ok(rows);
+    }
+
+    @Override
+    public Result urgeDelivery(Long userId, String orderNo) {
+        if (userId == null || orderNo == null || orderNo.trim().isEmpty()) {
+            return Result.error(ResultCode.ILLEGAL_PARAMETER.code(), "参数不完整");
+        }
+        UserOrder order = orderMapper.selectOne(new LambdaQueryWrapper<UserOrder>()
+                .eq(UserOrder::getUserId, userId)
+                .eq(UserOrder::getOrderNo, orderNo));
+        if (order == null) return Result.error(ResultCode.ILLEGAL_PARAMETER.code(), "订单不存在");
+        if (order.getStatus() == null || order.getStatus() != 1) {
+            return Result.error(ResultCode.ILLEGAL_PARAMETER.code(), "当前订单不可催发货");
+        }
+        order.setUrgeShip(1);
+        order.setUrgeTime(new Date());
+        orderMapper.updateById(order);
+        return Result.ok(null);
+    }
+
+    @Override
+    public Result toggleReviewLike(Long userId, Long commentId) {
+        if (userId == null || commentId == null) {
+            return Result.error(ResultCode.ILLEGAL_PARAMETER.code(), "参数不完整");
+        }
+        Comment c = commentMapper.selectById(commentId);
+        if (c == null || !"PRODUCT_REVIEW".equals(c.getTargetType())) {
+            return Result.error(ResultCode.ILLEGAL_PARAMETER.code(), "评价不存在");
+        }
+        LambdaQueryWrapper<UserAction> q = new LambdaQueryWrapper<UserAction>()
+                .eq(UserAction::getUserId, userId)
+                .eq(UserAction::getTargetId, commentId)
+                .eq(UserAction::getTargetType, "PRODUCT_REVIEW")
+                .eq(UserAction::getActionType, "LIKE");
+        Integer cnt = userActionMapper.selectCount(q);
+        if (cnt != null && cnt > 0) userActionMapper.delete(q);
+        else {
+            UserAction a = new UserAction();
+            a.setUserId(userId);
+            a.setTargetId(commentId);
+            a.setTargetType("PRODUCT_REVIEW");
+            a.setActionType("LIKE");
+            a.setCreateTime(new Date());
+            userActionMapper.insert(a);
+        }
+        return Result.ok(null);
+    }
+
+    @Override
+    public Result listProductReviews(Long userId, Long productId) {
+        if (productId == null) return Result.error(ResultCode.ILLEGAL_PARAMETER.code(), "参数不完整");
+        List<Comment> comments = commentMapper.selectList(new LambdaQueryWrapper<Comment>()
+                .eq(Comment::getTargetType, "PRODUCT_REVIEW")
+                .eq(Comment::getTargetId, productId)
+                .eq(Comment::getStatus, 1)
+                .orderByDesc(Comment::getCreateTime));
+        List<Map<String, Object>> rows = new ArrayList<>();
+        for (Comment c : comments) {
+            User u = userMapper.selectById(c.getUserId());
+            int likeCount = userActionMapper.selectCount(new LambdaQueryWrapper<UserAction>()
+                    .eq(UserAction::getTargetType, "PRODUCT_REVIEW")
+                    .eq(UserAction::getTargetId, c.getId())
+                    .eq(UserAction::getActionType, "LIKE"));
+            boolean liked = false;
+            if (userId != null) {
+                Integer likedCnt = userActionMapper.selectCount(new LambdaQueryWrapper<UserAction>()
+                        .eq(UserAction::getUserId, userId)
+                        .eq(UserAction::getTargetType, "PRODUCT_REVIEW")
+                        .eq(UserAction::getTargetId, c.getId())
+                        .eq(UserAction::getActionType, "LIKE"));
+                liked = likedCnt != null && likedCnt > 0;
+            }
+            Map<String, Object> m = new HashMap<>();
+            m.put("id", c.getId());
+            m.put("content", c.getContent());
+            m.put("createTime", c.getCreateTime());
+            m.put("userName", u == null ? "匿名" : (u.getNickname() == null ? u.getAccount() : u.getNickname()));
+            m.put("likeCount", likeCount);
+            m.put("liked", liked);
+            rows.add(m);
+        }
+        return Result.ok(rows);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public Result addProductReview(Long userId, String orderNo, Long productId, String content) {
+        if (userId == null || orderNo == null || productId == null || content == null || content.trim().isEmpty()) {
+            return Result.error(ResultCode.ILLEGAL_PARAMETER.code(), "参数不完整");
+        }
+        UserOrder order = orderMapper.selectOne(new LambdaQueryWrapper<UserOrder>()
+                .eq(UserOrder::getUserId, userId)
+                .eq(UserOrder::getOrderNo, orderNo));
+        if (order == null) return Result.error(ResultCode.ILLEGAL_PARAMETER.code(), "订单不存在");
+        if (order.getStatus() == null || order.getStatus() != 3) {
+            return Result.error(ResultCode.ILLEGAL_PARAMETER.code(), "订单未完成，暂不可评价");
+        }
+        Integer itemCnt = orderItemMapper.selectCount(new LambdaQueryWrapper<UserOrderItem>()
+                .eq(UserOrderItem::getOrderId, order.getId())
+                .eq(UserOrderItem::getProductId, productId));
+        if (itemCnt == null || itemCnt == 0) {
+            return Result.error(ResultCode.ILLEGAL_PARAMETER.code(), "未购买该商品，无法评价");
+        }
+        Integer dup = commentMapper.selectCount(new LambdaQueryWrapper<Comment>()
+                .eq(Comment::getUserId, userId)
+                .eq(Comment::getTargetType, "PRODUCT_REVIEW")
+                .eq(Comment::getTargetId, productId)
+                .eq(Comment::getParentId, order.getId()));
+        if (dup != null && dup > 0) {
+            return Result.error(ResultCode.ILLEGAL_PARAMETER.code(), "该订单下此商品已评价");
+        }
+        Comment c = new Comment();
+        c.setTargetType("PRODUCT_REVIEW");
+        c.setTargetId(productId);
+        c.setUserId(userId);
+        c.setParentId(order.getId());
+        c.setContent(content.trim());
+        c.setIsStaff(0);
+        c.setStatus(1);
+        c.setCreateTime(new Date());
+        commentMapper.insert(c);
+        return Result.ok(null);
     }
 
     private void closeExpired() {
@@ -298,6 +436,7 @@ public class OrderServiceImpl implements OrderService {
         order.setDeliveryExpectTime(deliveryExpectTime == null ? "" : deliveryExpectTime.trim());
         order.setNotifyReadAdmin(1);
         order.setNotifyReadStaff(1);
+        order.setUrgeShip(0);
         return order;
     }
 

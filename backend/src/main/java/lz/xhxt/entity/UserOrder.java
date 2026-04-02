@@ -48,7 +48,9 @@ public class UserOrder {
 
     private Integer notifyReadStaff;
 
-    private Integer urgeDelivery;
+    private Integer urgeShip;
+
+    private Date urgeTime;
 
     private String expressCompany;
 

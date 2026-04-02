@@ -22,16 +22,34 @@ import java.util.UUID;
 public class UploadController {
 
     @Value("${page.flowerImg:E:/Download/temp2/}")
-    private String uploadDir;
+    private String flowerDir;
+
+    @Value("${page.noticeImg:E:/Download/temp2/pageImg/notice/}")
+    private String noticeDir;
+
+    @Value("${page.postImg:E:/Download/temp2/pageImg/post/}")
+    private String postDir;
 
     @PostMapping("/image")
-    public Result uploadImage(@RequestParam("file") MultipartFile file, HttpServletRequest request) {
+    public Result uploadImage(@RequestParam("file") MultipartFile file,
+                              @RequestParam(required = false, defaultValue = "flower") String bizType,
+                              HttpServletRequest request) {
         if (file == null || file.isEmpty()) {
             return Result.error(ResultCode.ILLEGAL_PARAMETER.code(), "上传文件不能为空");
         }
         String ext = StringUtils.getFilenameExtension(file.getOriginalFilename());
         if (ext == null || ext.trim().isEmpty()) ext = "jpg";
         String fileName = UUID.randomUUID().toString().replace("-", "") + "." + ext;
+
+        String uploadDir = flowerDir;
+        String uriPrefix = "/file/flower/";
+        if ("notice".equalsIgnoreCase(bizType)) {
+            uploadDir = noticeDir;
+            uriPrefix = "/file/notice/";
+        } else if ("post".equalsIgnoreCase(bizType)) {
+            uploadDir = postDir;
+            uriPrefix = "/file/post/";
+        }
 
         File dir = new File(uploadDir);
         if (!dir.exists() && !dir.mkdirs()) {
@@ -45,7 +63,7 @@ public class UploadController {
         }
 
         String base = request.getScheme() + "://" + request.getServerName() + ":" + request.getServerPort();
-        String relative = request.getContextPath() + "/file/flower/" + fileName;
+        String relative = request.getContextPath() + uriPrefix + fileName;
 
         Map<String, Object> data = new HashMap<>();
         data.put("fileName", fileName);

@@ -63,6 +63,39 @@ public class OrderController {
         return orderService.listOrders(userId);
     }
 
+    @PostMapping("/urge/{orderNo}")
+    public Result urge(@RequestHeader(value = "Authorization", required = false) String authorization,
+                       @PathVariable String orderNo) {
+        Long userId = getUserIdFromToken(authorization);
+        if (userId == null) return Result.error(ResultCode.ILLEGAL_PARAMETER.code(), "请先登录");
+        return orderService.urgeDelivery(userId, orderNo);
+    }
+
+    @GetMapping("/review/list")
+    public Result reviewList(@RequestHeader(value = "Authorization", required = false) String authorization,
+                             @RequestParam Long productId) {
+        Long userId = getUserIdFromToken(authorization);
+        return orderService.listProductReviews(userId, productId);
+    }
+
+    @PostMapping("/review/add")
+    public Result reviewAdd(@RequestHeader(value = "Authorization", required = false) String authorization,
+                            @RequestParam String orderNo,
+                            @RequestParam Long productId,
+                            @RequestParam String content) {
+        Long userId = getUserIdFromToken(authorization);
+        if (userId == null) return Result.error(ResultCode.ILLEGAL_PARAMETER.code(), "请先登录");
+        return orderService.addProductReview(userId, orderNo, productId, content);
+    }
+
+    @PostMapping("/review/like/{commentId}")
+    public Result reviewLike(@RequestHeader(value = "Authorization", required = false) String authorization,
+                             @PathVariable Long commentId) {
+        Long userId = getUserIdFromToken(authorization);
+        if (userId == null) return Result.error(ResultCode.ILLEGAL_PARAMETER.code(), "请先登录");
+        return orderService.toggleReviewLike(userId, commentId);
+    }
+
     private Long getUserIdFromToken(String authorization) {
         try {
             return jwtService.parseUserId(authorization);

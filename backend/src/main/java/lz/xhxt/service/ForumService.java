@@ -1,22 +1,30 @@
 package lz.xhxt.service;
 
-import lz.xhxt.entity.Comment;
-import lz.xhxt.entity.ForumPost;
-
-import java.util.List;
+import lz.xhxt.common.Result;
 
 public interface ForumService {
-    List<ForumPost> getPostList(Long categoryId, String keyword);
 
-    ForumPost getPostDetail(Long id);
+    Result listPosts(Long userId, String keyword, boolean includeInvisibleMine);
 
-    void savePost(ForumPost post);
+    Result postDetail(Long userId, Long id);
 
-    void deletePost(Long id);
+    Result createPost(Long userId, Long productId, String title, String content);
 
-    List<Comment> getComments(Long targetId, String type);
+    Result updatePost(Long userId, Long id, Long productId, String title, String content);
 
-    void addComment(Comment comment);
+    Result togglePostVisibility(Long userId, Long id, Integer status);
 
-    void toggleAction(Long userId, Long targetId, String targetType, String actionType);
+    Result adminPatchPost(Long id, Integer isTop, Integer isBest, Integer status);
+
+    Result deletePost(Long userId, Long id, boolean asAdmin);
+
+    Result listMyPosts(Long userId);
+
+    Result listComments(Long userId, Long postId);
+
+    Result addComment(Long userId, Long postId, Long parentId, String content);
+
+    Result deleteComment(Long userId, Long commentId, boolean asAdmin);
+
+    Result toggleAction(Long userId, Long targetId, String targetType, String actionType);
 }

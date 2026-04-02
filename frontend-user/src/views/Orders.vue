@@ -8,8 +8,9 @@
       <el-tabs v-model="statusTab" @tab-change="onTabChange" style="margin-bottom: 12px">
         <el-tab-pane label="全部" name="all" />
         <el-tab-pane label="待付款" name="0" />
-        <el-tab-pane label="已支付" name="1" />
+        <el-tab-pane label="待发货" name="1" />
         <el-tab-pane label="待收货" name="2" />
+        <el-tab-pane label="已完成" name="3" />
         <el-tab-pane label="已关闭" name="4" />
       </el-tabs>
 
@@ -21,15 +22,16 @@
         <el-table-column prop="totalAmount" label="总金额" width="120">
           <template #default="{ row }">¥{{ Number(row.totalAmount || 0).toFixed(2) }}</template>
         </el-table-column>
-        <el-table-column label="状态" width="120">
+        <el-table-column label="状态" width="140">
           <template #default="{ row }">
             <el-tag :type="statusType(row.status)">{{ statusText(row.status) }}</el-tag>
           </template>
         </el-table-column>
-        <el-table-column label="操作" width="180">
+        <el-table-column label="操作" width="300">
           <template #default="{ row }">
             <el-button size="small" @click="goBill(row.orderNo)">查看账单</el-button>
             <el-button v-if="row.status === 0" size="small" type="primary" @click="goBill(row.orderNo)">去支付</el-button>
+            <el-button v-if="row.status === 1" size="small" type="warning" plain :disabled="row.urgeShip===1" @click="onUrge(row)">{{ row.urgeShip===1 ? '已催发货' : '催发货' }}</el-button>
           </template>
         </el-table-column>
       </el-table>
@@ -41,7 +43,7 @@
 import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
-import { listOrders } from '../api/order'
+import { listOrders, urgeOrder } from '../api/order'
 
 const router = useRouter()
 const route = useRoute()
@@ -50,15 +52,17 @@ const orders = ref([])
 const statusTab = ref('all')
 
 function statusText(status) {
-  if (status === 1) return '已支付'
+  if (status === 1) return '待发货'
   if (status === 2) return '待收货'
+  if (status === 3) return '已完成'
   if (status === 4) return '已关闭'
   return '待支付'
 }
 
 function statusType(status) {
-  if (status === 1) return 'success'
+  if (status === 1) return 'warning'
   if (status === 2) return 'primary'
+  if (status === 3) return 'success'
   if (status === 4) return 'info'
   return 'warning'
 }
@@ -81,25 +85,24 @@ async function loadOrders() {
   }
 }
 
+async function onUrge(row) {
+  await urgeOrder(row.orderNo)
+  ElMessage.success('已催发货，员工端将显示紧急任务')
+  await loadOrders()
+}
+
 function goBill(orderNo) {
   router.push({ path: '/bill', query: { orderNo } })
 }
 
 function onTabChange(name) {
-  if (name === 'all') {
-    router.replace({ path: '/orders' })
-  } else {
-    router.replace({ path: '/orders', query: { status: name } })
-  }
+  if (name === 'all') router.replace({ path: '/orders' })
+  else router.replace({ path: '/orders', query: { status: name } })
 }
 
-watch(
-  () => route.query.status,
-  (v) => {
-    statusTab.value = v == null ? 'all' : String(v)
-  },
-  { immediate: true }
-)
+watch(() => route.query.status, (v) => {
+  statusTab.value = v == null ? 'all' : String(v)
+}, { immediate: true })
 
 onMounted(loadOrders)
 </script>

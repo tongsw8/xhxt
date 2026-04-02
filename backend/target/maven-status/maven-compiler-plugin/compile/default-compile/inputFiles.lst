@@ -22,6 +22,7 @@ E:\huhao\xhxt\backend\src\main\java\lz\xhxt\mapper\NoticeMapper.java
 E:\huhao\xhxt\backend\src\main\java\lz\xhxt\mapper\UserFavoriteMapper.java
 E:\huhao\xhxt\backend\src\main\java\lz\xhxt\service\impl\OrderServiceImpl.java
 E:\huhao\xhxt\backend\src\main\java\lz\xhxt\dto\UpdateProfileRequest.java
+E:\huhao\xhxt\backend\src\main\java\lz\xhxt\dto\OrderCommentSaveRequest.java
 E:\huhao\xhxt\backend\src\main\java\lz\xhxt\entity\Notice.java
 E:\huhao\xhxt\backend\src\main\java\lz\xhxt\mapper\ProductCategoryMapper.java
 E:\huhao\xhxt\backend\src\main\java\lz\xhxt\dto\AddressSaveRequest.java
@@ -48,6 +49,7 @@ E:\huhao\xhxt\backend\src\main\java\lz\xhxt\mapper\UserAddressMapper.java
 E:\huhao\xhxt\backend\src\main\java\lz\xhxt\controller\ForumController.java
 E:\huhao\xhxt\backend\src\main\java\lz\xhxt\service\JwtService.java
 E:\huhao\xhxt\backend\src\main\java\lz\xhxt\service\impl\ForumServiceImpl.java
+E:\huhao\xhxt\backend\src\main\java\lz\xhxt\controller\OrderCommentController.java
 E:\huhao\xhxt\backend\src\main\java\lz\xhxt\dto\CreateOrderRequest.java
 E:\huhao\xhxt\backend\src\main\java\lz\xhxt\controller\UploadController.java
 E:\huhao\xhxt\backend\src\main\java\lz\xhxt\service\UserService.java

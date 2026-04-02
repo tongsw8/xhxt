@@ -11,13 +11,22 @@ public class WebStaticResourceConfig implements WebMvcConfigurer {
     @Value("${page.flowerImg:E:/Download/temp2/}")
     private String flowerImgDir;
 
+    @Value("${page.noticeImg:E:/Download/temp2/pageImg/notice/}")
+    private String noticeImgDir;
+
+    @Value("${page.postImg:E:/Download/temp2/pageImg/post/}")
+    private String postImgDir;
+
     @Override
     public void addResourceHandlers(ResourceHandlerRegistry registry) {
-        String location = "file:/" + flowerImgDir.replace("\\", "/");
-        if (!location.endsWith("/")) {
-            location = location + "/";
-        }
-        registry.addResourceHandler("/file/flower/**")
-                .addResourceLocations(location);
+        registry.addResourceHandler("/file/flower/**").addResourceLocations(toLocation(flowerImgDir));
+        registry.addResourceHandler("/file/notice/**").addResourceLocations(toLocation(noticeImgDir));
+        registry.addResourceHandler("/file/post/**").addResourceLocations(toLocation(postImgDir));
+    }
+
+    private String toLocation(String dir) {
+        String location = "file:/" + dir.replace("\\", "/");
+        if (!location.endsWith("/")) location = location + "/";
+        return location;
     }
 }

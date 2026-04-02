@@ -51,6 +51,14 @@ public class StaffOrderController {
         return Result.ok(list);
     }
 
+    @GetMapping("/urge-count")
+    public Result urgeCount() {
+        Integer count = userOrderMapper.selectCount(new LambdaQueryWrapper<UserOrder>()
+                .eq(UserOrder::getStatus, 1)
+                .eq(UserOrder::getUrgeShip, 1));
+        return Result.ok(count == null ? 0 : count);
+    }
+
     @GetMapping("/notify/list")
     public Result notifyList() {
         List<UserOrder> orders = userOrderMapper.selectList(new LambdaQueryWrapper<UserOrder>()
@@ -93,6 +101,12 @@ public class StaffOrderController {
                           @RequestParam String company,
                           @RequestParam String no) {
         deliveryService.doDelivery(id, company, no);
+        return Result.ok(null);
+    }
+
+    @PostMapping("/finish/{id}")
+    public Result finish(@PathVariable Long id) {
+        deliveryService.finishDelivery(id);
         return Result.ok(null);
     }
 }

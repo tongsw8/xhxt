@@ -48,7 +48,10 @@
         <el-card class="task-card">
           <template #header><span class="card-title">📋 今日待办</span></template>
           <div class="task-list">
-            <div class="task-item"><div class="task-status urgent">紧急</div><div class="task-content"><div class="task-title">发货录入</div><div class="task-count">{{ pendingShipCount }} 单待处理</div></div></div>
+            <div class="task-item" :class="{ blink: urgentShipCount > 0 }">
+              <div class="task-status urgent">紧急</div>
+              <div class="task-content"><div class="task-title">发货录入</div><div class="task-count">{{ urgentShipCount }} 单需优先处理</div></div>
+            </div>
             <div class="task-item"><div class="task-status normal">普通</div><div class="task-content"><div class="task-title">官方回复</div><div class="task-count">{{ pendingReplyCount }} 条待回复</div></div></div>
             <div class="task-item"><div class="task-status normal">普通</div><div class="task-content"><div class="task-title">库存盘点</div><div class="task-count">{{ inventoryCheckCount }} 件需核实</div></div></div>
           </div>
@@ -59,15 +62,17 @@
 </template>
 
 <script setup>
-import { onMounted, ref } from 'vue'
+import { onBeforeUnmount, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import http from '../api/http'
 
 const router = useRouter()
 const inventoryCheckCount = ref(0)
 const pendingShipCount = ref(0)
+const urgentShipCount = ref(0)
 const pendingReplyCount = ref(0)
 const todayProcessed = ref(0)
+let timer = null
 
 function go(path) { router.push(path) }
 
@@ -81,11 +86,19 @@ async function loadStats() {
   pendingShipCount.value = orders.filter(o => o.status === 1).length
   const shipped = orders.filter(o => o.status === 2).length
 
+  const uRes = await http.get('/staff/order/urge-count')
+  urgentShipCount.value = Number(uRes.data?.data || 0)
+
   pendingReplyCount.value = 0
   todayProcessed.value = shipped
 }
 
-onMounted(loadStats)
+onMounted(async () => {
+  await loadStats()
+  timer = setInterval(loadStats, 8000)
+})
+
+onBeforeUnmount(() => { if (timer) clearInterval(timer) })
 </script>
 
 <style scoped>
@@ -113,6 +126,8 @@ onMounted(loadStats)
 .action-name { font-size: 13px; font-weight: 600; }
 .task-list { display: flex; flex-direction: column; gap: 12px; }
 .task-item { display: flex; align-items: center; gap: 12px; padding: 12px; border-radius: 8px; background: #f9fafb; }
+.task-item.blink { animation: urgentBlink 1s infinite; box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.35) inset; }
+@keyframes urgentBlink { 0%,100% { background: #fff1f2; } 50% { background: #fee2e2; } }
 .task-status { padding: 4px 12px; border-radius: 4px; font-size: 11px; font-weight: 700; white-space: nowrap; color: #fff; }
 .task-status.urgent { background: #ef4444; }
 .task-status.normal { background: #10b981; }

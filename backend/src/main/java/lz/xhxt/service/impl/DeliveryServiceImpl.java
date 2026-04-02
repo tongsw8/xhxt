@@ -17,14 +17,24 @@ public class DeliveryServiceImpl implements DeliveryService {
     @Override
     public void doDelivery(Long orderId, String expressCompany, String trackingNo) {
         UserOrder order = orderMapper.selectById(orderId);
-        if (order == null) {
-            return;
-        }
+        if (order == null) return;
         if (order.getStatus() != null && order.getStatus() == 1) {
             order.setExpressCompany(expressCompany);
             order.setTrackingNo(trackingNo);
             order.setDeliveryTime(new Date());
             order.setStatus(2);
+            orderMapper.updateById(order);
+        }
+    }
+
+    @Override
+    public void finishDelivery(Long orderId) {
+        UserOrder order = orderMapper.selectById(orderId);
+        if (order == null) return;
+        if (order.getStatus() != null && order.getStatus() == 2) {
+            order.setStatus(3);
+            order.setFinishTime(new Date());
+            order.setUrgeShip(0);
             orderMapper.updateById(order);
         }
     }

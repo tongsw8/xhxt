@@ -3,23 +3,29 @@
     <template #header>订单发货</template>
 
     <el-tabs v-model="statusTab" @tab-change="load" style="margin-bottom: 12px">
-      <el-tab-pane label="全部（待发货+送达中）" name="all" />
+      <el-tab-pane label="全部（待发货+待收货）" name="all" />
       <el-tab-pane label="待发货" name="1" />
-      <el-tab-pane label="送达中" name="2" />
+      <el-tab-pane label="待收货" name="2" />
     </el-tabs>
 
     <el-table :data="orders" border>
       <el-table-column prop="id" label="ID" width="80" />
-      <el-table-column prop="orderNo" label="订单号" />
-      <el-table-column prop="receiverName" label="收货人" />
-      <el-table-column label="状态" width="100">
+      <el-table-column prop="orderNo" label="订单号" min-width="190" />
+      <el-table-column prop="receiverName" label="收货人" width="110" />
+      <el-table-column label="催发货" width="90">
         <template #default="{ row }">
-          <el-tag :type="row.status === 1 ? 'warning' : 'success'">{{ row.status === 1 ? '待发货' : '送达中' }}</el-tag>
+          <el-tag v-if="row.urgeShip === 1" type="danger" effect="dark">紧急</el-tag>
+          <span v-else>-</span>
+        </template>
+      </el-table-column>
+      <el-table-column label="状态" width="110">
+        <template #default="{ row }">
+          <el-tag :type="row.status === 1 ? 'warning' : 'primary'">{{ row.status === 1 ? '待发货' : '待收货' }}</el-tag>
         </template>
       </el-table-column>
       <el-table-column prop="expressCompany" label="快递公司" width="130" />
       <el-table-column prop="trackingNo" label="物流单号" width="170" />
-      <el-table-column label="操作" width="360">
+      <el-table-column label="操作" width="420">
         <template #default="{ row }">
           <template v-if="row.status === 1">
             <el-input v-model="row.company" placeholder="快递公司" style="width:110px;margin-right:8px" />
@@ -27,7 +33,7 @@
             <el-button size="small" type="primary" @click="deliver(row)">发货</el-button>
           </template>
           <template v-else>
-            <span style="color:#67c23a">已发货，送达中</span>
+            <el-button size="small" type="success" @click="finish(row)">送达</el-button>
           </template>
         </template>
       </el-table-column>
@@ -57,7 +63,13 @@ const deliver = async (row) => {
     return
   }
   await http.post('/staff/order/delivery', null, { params: { id: row.id, company: row.company, no: row.no } })
-  ElMessage.success('发货成功，状态已变为送达中')
+  ElMessage.success('发货成功，状态已变为待收货')
+  await load()
+}
+
+const finish = async (row) => {
+  await http.post(`/staff/order/finish/${row.id}`)
+  ElMessage.success('订单已完成')
   await load()
 }
 

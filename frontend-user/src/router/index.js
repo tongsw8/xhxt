@@ -13,6 +13,8 @@ import ForumList from '../views/ForumList.vue'
 import ForumDetail from '../views/ForumDetail.vue'
 import ForumPost from '../views/ForumPost.vue'
 import ProductDetail from '../views/ProductDetail.vue'
+import NoticeList from '../views/NoticeList.vue'
+import NoticeDetail from '../views/NoticeDetail.vue'
 
 const router = createRouter({
   history: createWebHistory(),
@@ -32,6 +34,8 @@ const router = createRouter({
         { path: 'community', name: 'UserCommunity', component: ForumList },
         { path: 'community/detail/:id', name: 'ForumDetail', component: ForumDetail },
         { path: 'community/post', name: 'ForumPost', component: ForumPost },
+        { path: 'notice', name: 'NoticeList', component: NoticeList },
+        { path: 'notice/:id', name: 'NoticeDetail', component: NoticeDetail },
         { path: 'profile', name: 'UserProfile', component: Profile },
       ],
     },

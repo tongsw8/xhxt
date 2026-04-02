@@ -13,9 +13,19 @@ public interface ContentService {
 
     void deleteBanner(Long id);
 
-    List<Notice> getLatestNotices();
+    List<Notice> getPublishedNotices();
+
+    Notice getPublishedNoticeDetail(Long id);
+
+    List<Notice> getAdminNoticeList();
 
     void saveNotice(Notice notice);
+
+    void updateNoticeStatus(Long id, Integer status);
+
+    void updateNoticeTop(Long id, Integer isTop);
+
+    void deleteNotice(Long id);
 
     List<NewsInfo> getNewsList(Long categoryId);
 

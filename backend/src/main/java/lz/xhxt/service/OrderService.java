@@ -13,4 +13,12 @@ public interface OrderService {
     Result payOrder(Long userId, String orderNo);
 
     Result listOrders(Long userId);
+
+    Result urgeDelivery(Long userId, String orderNo);
+
+    Result listProductReviews(Long userId, Long productId);
+
+    Result addProductReview(Long userId, String orderNo, Long productId, String content);
+
+    Result toggleReviewLike(Long userId, Long commentId);
 }

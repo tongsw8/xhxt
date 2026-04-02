@@ -45,9 +45,7 @@ public class ContentController {
 
     @PostMapping("/admin/banner/save")
     public Result saveBanner(@RequestBody Banner banner) {
-        if (banner.getCreateTime() == null) {
-            banner.setCreateTime(new Date());
-        }
+        if (banner.getCreateTime() == null) banner.setCreateTime(new Date());
         contentService.saveBanner(banner);
         return Result.ok(null);
     }
@@ -68,8 +66,42 @@ public class ContentController {
     }
 
     @GetMapping("/notices")
-    public List<Notice> notices() {
-        return contentService.getLatestNotices();
+    public Result notices() {
+        return Result.ok(contentService.getPublishedNotices());
+    }
+
+    @GetMapping("/notice/{id}")
+    public Result noticeDetail(@PathVariable Long id) {
+        return Result.ok(contentService.getPublishedNoticeDetail(id));
+    }
+
+    @GetMapping("/admin/notice/list")
+    public Result adminNoticeList() {
+        return Result.ok(contentService.getAdminNoticeList());
+    }
+
+    @PostMapping("/admin/notice/save")
+    public Result saveNotice(@RequestBody Notice notice) {
+        contentService.saveNotice(notice);
+        return Result.ok(null);
+    }
+
+    @PostMapping("/admin/notice/status")
+    public Result noticeStatus(@RequestParam Long id, @RequestParam Integer status) {
+        contentService.updateNoticeStatus(id, status);
+        return Result.ok(null);
+    }
+
+    @PostMapping("/admin/notice/top")
+    public Result noticeTop(@RequestParam Long id, @RequestParam Integer isTop) {
+        contentService.updateNoticeTop(id, isTop);
+        return Result.ok(null);
+    }
+
+    @DeleteMapping("/admin/notice/delete/{id}")
+    public Result deleteNotice(@PathVariable Long id) {
+        contentService.deleteNotice(id);
+        return Result.ok(null);
     }
 
     @GetMapping("/news")
@@ -80,11 +112,6 @@ public class ContentController {
     @GetMapping("/news/{id}")
     public NewsInfo newsDetail(@PathVariable Long id) {
         return contentService.getNewsDetail(id);
-    }
-
-    @PostMapping("/admin/notice")
-    public void saveNotice(@RequestBody Notice notice) {
-        contentService.saveNotice(notice);
     }
 
     @PostMapping("/admin/news")
