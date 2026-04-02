@@ -40,6 +40,16 @@ public class UserOrder {
 
     private String receiverAddress;
 
+    private String cardMessage;
+
+    private String deliveryExpectTime;
+
+    private Integer notifyReadAdmin;
+
+    private Integer notifyReadStaff;
+
+    private Integer urgeDelivery;
+
     private String expressCompany;
 
     private String trackingNo;

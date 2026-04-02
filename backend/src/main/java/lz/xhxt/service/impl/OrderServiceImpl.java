@@ -47,7 +47,7 @@ public class OrderServiceImpl implements OrderService {
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public Result createFromCart(Long userId, Long addressId) {
+    public Result createFromCart(Long userId, Long addressId, String cardMessage, String deliveryExpectTime) {
         if (userId == null || addressId == null) {
             return Result.error(ResultCode.ILLEGAL_PARAMETER.code(), "参数不完整");
         }
@@ -58,6 +58,8 @@ public class OrderServiceImpl implements OrderService {
         if (address == null) {
             return Result.error(ResultCode.ILLEGAL_PARAMETER.code(), "收货地址不存在");
         }
+
+        closeExpired();
 
         List<UserCart> carts = cartMapper.selectList(new LambdaQueryWrapper<UserCart>()
                 .eq(UserCart::getUserId, userId)
@@ -72,40 +74,36 @@ public class OrderServiceImpl implements OrderService {
 
         for (UserCart cart : carts) {
             ProductInfo p = productMapper.selectById(cart.getProductId());
-            if (p == null || p.getStatus() == null || p.getStatus() != 1) {
-                continue;
+            if (p == null || p.getStatus() == null || p.getStatus() != 1) continue;
+
+            int need = cart.getQuantity() == null ? 0 : cart.getQuantity();
+            int stock = p.getStock() == null ? 0 : p.getStock();
+            if (need <= 0) continue;
+            if (stock < need) {
+                return Result.error(ResultCode.ILLEGAL_PARAMETER.code(), "商品【" + p.getProductName() + "】库存不足");
             }
+
+            p.setStock(stock - need);
+            productMapper.updateById(p);
 
             UserOrderItem item = new UserOrderItem();
             item.setProductId(p.getId());
             item.setProductName(p.getProductName());
             item.setProductPrice(p.getPrice());
-            item.setQuantity(cart.getQuantity());
+            item.setQuantity(need);
             item.setCoverImg(p.getCoverImg());
             items.add(item);
 
-            total = total.add(p.getPrice().multiply(BigDecimal.valueOf(cart.getQuantity())));
-            totalQty += cart.getQuantity();
+            total = total.add(p.getPrice().multiply(BigDecimal.valueOf(need)));
+            totalQty += need;
         }
 
         if (items.isEmpty()) {
             return Result.error(ResultCode.ILLEGAL_PARAMETER.code(), "购物车中无可下单商品");
         }
 
-        Date now = new Date();
-        Date expire = new Date(now.getTime() + 30 * 60 * 1000L);
-
-        UserOrder order = new UserOrder();
-        order.setOrderNo(genOrderNo(userId));
-        order.setUserId(userId);
-        order.setTotalAmount(total);
-        order.setStatus(0);
-        order.setExpireTime(expire);
-        order.setReceiverName(address.getReceiverName());
-        order.setReceiverPhone(address.getReceiverPhone());
-        order.setReceiverAddress(joinAddress(address));
+        UserOrder order = buildOrder(userId, address, total, cardMessage, deliveryExpectTime);
         orderMapper.insert(order);
-
         for (UserOrderItem item : items) {
             item.setOrderId(order.getId());
             orderItemMapper.insert(item);
@@ -117,7 +115,57 @@ public class OrderServiceImpl implements OrderService {
         data.put("orderNo", order.getOrderNo());
         data.put("totalAmount", total);
         data.put("totalQuantity", totalQty);
-        data.put("expireTime", expire);
+        data.put("expireTime", order.getExpireTime());
+        data.put("status", order.getStatus());
+        return Result.ok(data);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public Result createDirect(Long userId, Long addressId, Long productId, Integer quantity, String cardMessage, String deliveryExpectTime) {
+        if (userId == null || addressId == null || productId == null || quantity == null || quantity < 1) {
+            return Result.error(ResultCode.ILLEGAL_PARAMETER.code(), "参数不完整");
+        }
+
+        UserAddress address = userAddressMapper.selectOne(new LambdaQueryWrapper<UserAddress>()
+                .eq(UserAddress::getId, addressId)
+                .eq(UserAddress::getUserId, userId));
+        if (address == null) {
+            return Result.error(ResultCode.ILLEGAL_PARAMETER.code(), "收货地址不存在");
+        }
+
+        closeExpired();
+
+        ProductInfo p = productMapper.selectById(productId);
+        if (p == null || p.getStatus() == null || p.getStatus() != 1) {
+            return Result.error(ResultCode.ILLEGAL_PARAMETER.code(), "商品不存在或已下架");
+        }
+        int stock = p.getStock() == null ? 0 : p.getStock();
+        if (stock < quantity) {
+            return Result.error(ResultCode.ILLEGAL_PARAMETER.code(), "库存不足");
+        }
+
+        p.setStock(stock - quantity);
+        productMapper.updateById(p);
+
+        BigDecimal total = p.getPrice().multiply(BigDecimal.valueOf(quantity));
+        UserOrder order = buildOrder(userId, address, total, cardMessage, deliveryExpectTime);
+        orderMapper.insert(order);
+
+        UserOrderItem item = new UserOrderItem();
+        item.setOrderId(order.getId());
+        item.setProductId(p.getId());
+        item.setProductName(p.getProductName());
+        item.setProductPrice(p.getPrice());
+        item.setQuantity(quantity);
+        item.setCoverImg(p.getCoverImg());
+        orderItemMapper.insert(item);
+
+        Map<String, Object> data = new HashMap<>();
+        data.put("orderNo", order.getOrderNo());
+        data.put("totalAmount", total);
+        data.put("totalQuantity", quantity);
+        data.put("expireTime", order.getExpireTime());
         data.put("status", order.getStatus());
         return Result.ok(data);
     }
@@ -127,7 +175,7 @@ public class OrderServiceImpl implements OrderService {
         if (userId == null || orderNo == null || orderNo.trim().isEmpty()) {
             return Result.error(ResultCode.ILLEGAL_PARAMETER.code(), "参数不完整");
         }
-        closeExpired(userId);
+        closeExpired();
 
         UserOrder order = orderMapper.selectOne(new LambdaQueryWrapper<UserOrder>()
                 .eq(UserOrder::getUserId, userId)
@@ -153,7 +201,7 @@ public class OrderServiceImpl implements OrderService {
         if (userId == null || orderNo == null || orderNo.trim().isEmpty()) {
             return Result.error(ResultCode.ILLEGAL_PARAMETER.code(), "参数不完整");
         }
-        closeExpired(userId);
+        closeExpired();
 
         UserOrder order = orderMapper.selectOne(new LambdaQueryWrapper<UserOrder>()
                 .eq(UserOrder::getUserId, userId)
@@ -170,6 +218,8 @@ public class OrderServiceImpl implements OrderService {
 
         order.setStatus(1);
         order.setPayTime(new Date());
+        order.setNotifyReadAdmin(0);
+        order.setNotifyReadStaff(0);
         orderMapper.updateById(order);
         return Result.ok(null);
     }
@@ -177,7 +227,7 @@ public class OrderServiceImpl implements OrderService {
     @Override
     public Result listOrders(Long userId) {
         if (userId == null) return Result.error(ResultCode.ILLEGAL_PARAMETER.code(), "请先登录");
-        closeExpired(userId);
+        closeExpired();
 
         List<UserOrder> orders = orderMapper.selectList(new LambdaQueryWrapper<UserOrder>()
                 .eq(UserOrder::getUserId, userId)
@@ -197,6 +247,8 @@ public class OrderServiceImpl implements OrderService {
             r.put("receiverName", order.getReceiverName());
             r.put("receiverPhone", order.getReceiverPhone());
             r.put("receiverAddress", order.getReceiverAddress());
+            r.put("cardMessage", order.getCardMessage());
+            r.put("deliveryExpectTime", order.getDeliveryExpectTime());
             r.put("payTime", order.getPayTime());
             r.put("createTime", order.getCreateTime());
             rows.add(r);
@@ -204,17 +256,49 @@ public class OrderServiceImpl implements OrderService {
         return Result.ok(rows);
     }
 
-    private void closeExpired(Long userId) {
+    private void closeExpired() {
         Date now = new Date();
         List<UserOrder> pendings = orderMapper.selectList(new LambdaQueryWrapper<UserOrder>()
-                .eq(UserOrder::getUserId, userId)
                 .eq(UserOrder::getStatus, 0)
                 .lt(UserOrder::getExpireTime, now));
         for (UserOrder o : pendings) {
             o.setStatus(4);
             o.setCloseTime(now);
             orderMapper.updateById(o);
+            restoreStock(o.getId());
         }
+    }
+
+    private void restoreStock(Long orderId) {
+        List<UserOrderItem> items = orderItemMapper.selectList(new LambdaQueryWrapper<UserOrderItem>()
+                .eq(UserOrderItem::getOrderId, orderId));
+        for (UserOrderItem item : items) {
+            ProductInfo p = productMapper.selectById(item.getProductId());
+            if (p == null) continue;
+            int stock = p.getStock() == null ? 0 : p.getStock();
+            int add = item.getQuantity() == null ? 0 : item.getQuantity();
+            p.setStock(stock + add);
+            productMapper.updateById(p);
+        }
+    }
+
+    private UserOrder buildOrder(Long userId, UserAddress address, BigDecimal total, String cardMessage, String deliveryExpectTime) {
+        Date now = new Date();
+        Date expire = new Date(now.getTime() + 30 * 60 * 1000L);
+        UserOrder order = new UserOrder();
+        order.setOrderNo(genOrderNo(userId));
+        order.setUserId(userId);
+        order.setTotalAmount(total);
+        order.setStatus(0);
+        order.setExpireTime(expire);
+        order.setReceiverName(address.getReceiverName());
+        order.setReceiverPhone(address.getReceiverPhone());
+        order.setReceiverAddress(joinAddress(address));
+        order.setCardMessage(cardMessage == null ? "" : cardMessage.trim());
+        order.setDeliveryExpectTime(deliveryExpectTime == null ? "" : deliveryExpectTime.trim());
+        order.setNotifyReadAdmin(1);
+        order.setNotifyReadStaff(1);
+        return order;
     }
 
     private String joinAddress(UserAddress a) {

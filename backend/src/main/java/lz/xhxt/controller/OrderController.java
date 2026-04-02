@@ -2,6 +2,7 @@ package lz.xhxt.controller;
 
 import lz.xhxt.common.Result;
 import lz.xhxt.common.ResultCode;
+import lz.xhxt.dto.CreateDirectOrderRequest;
 import lz.xhxt.dto.CreateOrderRequest;
 import lz.xhxt.service.JwtService;
 import lz.xhxt.service.OrderService;
@@ -25,7 +26,18 @@ public class OrderController {
         Long userId = getUserIdFromToken(authorization);
         if (userId == null) return Result.error(ResultCode.ILLEGAL_PARAMETER.code(), "请先登录");
         if (req == null || req.getAddressId() == null) return Result.error(ResultCode.ILLEGAL_PARAMETER.code(), "请选择收货地址");
-        return orderService.createFromCart(userId, req.getAddressId());
+        return orderService.createFromCart(userId, req.getAddressId(), req.getCardMessage(), req.getDeliveryExpectTime());
+    }
+
+    @PostMapping("/create-direct")
+    public Result createDirect(@RequestHeader(value = "Authorization", required = false) String authorization,
+                               @RequestBody CreateDirectOrderRequest req) {
+        Long userId = getUserIdFromToken(authorization);
+        if (userId == null) return Result.error(ResultCode.ILLEGAL_PARAMETER.code(), "请先登录");
+        if (req == null || req.getAddressId() == null || req.getProductId() == null || req.getQuantity() == null) {
+            return Result.error(ResultCode.ILLEGAL_PARAMETER.code(), "参数不完整");
+        }
+        return orderService.createDirect(userId, req.getAddressId(), req.getProductId(), req.getQuantity(), req.getCardMessage(), req.getDeliveryExpectTime());
     }
 
     @GetMapping("/detail/{orderNo}")

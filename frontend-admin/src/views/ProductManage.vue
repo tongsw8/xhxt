@@ -146,6 +146,17 @@
             <el-image :src="toImageUrl(productDialog.form.coverImg)" fit="cover" style="width: 72px; height: 72px; border-radius: 8px" />
           </div>
         </el-form-item>
+        <el-form-item label="详情轮播图">
+          <el-upload :show-file-list="false" :http-request="uploadDetailImg" accept="image/*">
+            <el-button>上传详情图</el-button>
+          </el-upload>
+          <div class="detail-imgs">
+            <div class="detail-img-item" v-for="(img, idx) in productDialog.form.detailImgs" :key="idx">
+              <el-image :src="toImageUrl(img)" fit="cover" style="width: 72px; height: 72px; border-radius: 8px" />
+              <el-button text type="danger" size="small" @click="removeDetailImg(idx)">删除</el-button>
+            </div>
+          </div>
+        </el-form-item>
         <el-form-item label="详情">
           <el-input v-model="productDialog.form.detailText" type="textarea" :rows="4" />
         </el-form-item>
@@ -206,6 +217,7 @@ const productDialog = reactive({
     stock: 0,
     coverImg: '',
     detailText: '',
+    detailImgs: [],
     status: 1,
   },
 })
@@ -285,6 +297,7 @@ function openProductDialog(row) {
       stock: Number(row.stock || 0),
       coverImg: row.coverImg || '',
       detailText: row.detailText || '',
+      detailImgs: row.detailImgs || [],
       status: row.status ?? 1,
     }
   } else {
@@ -296,6 +309,7 @@ function openProductDialog(row) {
       stock: 0,
       coverImg: '',
       detailText: '',
+      detailImgs: [],
       status: 1,
     }
   }
@@ -360,6 +374,18 @@ async function uploadCover(option) {
   }
 }
 
+async function uploadDetailImg(option) {
+  const { file } = option
+  const { data } = await uploadImage(file)
+  const url = data.data?.url || ''
+  if (url) productDialog.form.detailImgs.push(url)
+  ElMessage.success('详情图上传成功')
+}
+
+function removeDetailImg(idx) {
+  productDialog.form.detailImgs.splice(idx, 1)
+}
+
 function toImageUrl(path) {
   if (!path) return ''
   if (path.startsWith('http://') || path.startsWith('https://')) return path
@@ -415,6 +441,19 @@ onMounted(async () => {
 
 .cover-preview {
   margin-top: 10px;
+}
+
+.detail-imgs {
+  margin-top: 10px;
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.detail-img-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
 }
 
 .muted {

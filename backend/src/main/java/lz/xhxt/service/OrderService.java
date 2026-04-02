@@ -4,7 +4,9 @@ import lz.xhxt.common.Result;
 
 public interface OrderService {
 
-    Result createFromCart(Long userId, Long addressId);
+    Result createFromCart(Long userId, Long addressId, String cardMessage, String deliveryExpectTime);
+
+    Result createDirect(Long userId, Long addressId, Long productId, Integer quantity, String cardMessage, String deliveryExpectTime);
 
     Result getOrderDetail(Long userId, String orderNo);
 

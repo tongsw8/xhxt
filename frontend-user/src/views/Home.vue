@@ -30,6 +30,12 @@
 
     <div class="quick-access">
       <h3 class="section-title">快捷入口</h3>
+      <el-space wrap style="margin-bottom: 14px">
+        <el-tag effect="dark" @click="go('/shop')">去逛商城</el-tag>
+        <el-tag type="success" @click="go('/cart')">购物车下单</el-tag>
+        <el-tag type="warning" @click="go('/orders')">订单中心</el-tag>
+        <el-tag type="info" @click="go('/profile')">地址与资料</el-tag>
+      </el-space>
       <el-row :gutter="16">
         <el-col :xs="12" :sm="8"><div class="quick-card" @click="go('/shop')"><div class="quick-icon">🛍️</div><div class="quick-name">商城</div><div class="quick-desc">浏览精选鲜花</div></div></el-col>
         <el-col :xs="12" :sm="8"><div class="quick-card" @click="go('/community')"><div class="quick-icon">💬</div><div class="quick-name">社区</div><div class="quick-desc">分享养护心得</div></div></el-col>
@@ -92,6 +98,7 @@ onMounted(async () => {
 .stat-value { font-size: 28px; font-weight: 700; color: #333; }
 .quick-access { margin-bottom: 16px; }
 .section-title { font-size: 18px; font-weight: 700; margin: 0 0 16px; color: #333; }
+.quick-access :deep(.el-tag) { cursor: pointer; }
 .quick-card { background: #fff; border-radius: 12px; padding: 24px; text-align: center; box-shadow: 0 2px 8px rgba(0,0,0,.08); transition: all .3s ease; cursor: pointer; border: 2px solid transparent; }
 .quick-card:hover { transform: translateY(-4px); box-shadow: 0 8px 16px rgba(0,0,0,.12); border-color: #667eea; }
 .quick-icon { font-size: 40px; margin-bottom: 12px; }

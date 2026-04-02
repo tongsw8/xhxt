@@ -7,3 +7,7 @@ export function fetchShopCategories() {
 export function fetchShopProducts(params) {
   return http.get('/shop/product/list', { params })
 }
+
+export function fetchProductDetail(id) {
+  return http.get(`/shop/product/detail/${id}`)
+}

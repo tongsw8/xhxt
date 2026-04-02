@@ -63,7 +63,9 @@ E:\huhao\xhxt\backend\src\main\java\lz\xhxt\mapper\UserOrderItemMapper.java
 E:\huhao\xhxt\backend\src\main\java\lz\xhxt\controller\ProductManageController.java
 E:\huhao\xhxt\backend\src\main\java\lz\xhxt\controller\UserCenterController.java
 E:\huhao\xhxt\backend\src\main\java\lz\xhxt\controller\AdminUserController.java
+E:\huhao\xhxt\backend\src\main\java\lz\xhxt\dto\CreateDirectOrderRequest.java
 E:\huhao\xhxt\backend\src\main\java\lz\xhxt\service\OrderService.java
+E:\huhao\xhxt\backend\src\main\java\lz\xhxt\controller\AdminOrderController.java
 E:\huhao\xhxt\backend\src\main\java\lz\xhxt\controller\ShopController.java
 E:\huhao\xhxt\backend\src\main\java\lz\xhxt\entity\UserOrder.java
 E:\huhao\xhxt\backend\src\main\java\lz\xhxt\dto\LoginRequest.java

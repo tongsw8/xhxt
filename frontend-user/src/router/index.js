@@ -1,4 +1,4 @@
-﻿import { createRouter, createWebHistory } from 'vue-router'
+import { createRouter, createWebHistory } from 'vue-router'
 import Home from '../views/Home.vue'
 import Login from '../views/Login.vue'
 import ModulePlaceholder from '../views/ModulePlaceholder.vue'
@@ -12,6 +12,7 @@ import Profile from '../views/Profile.vue'
 import ForumList from '../views/ForumList.vue'
 import ForumDetail from '../views/ForumDetail.vue'
 import ForumPost from '../views/ForumPost.vue'
+import ProductDetail from '../views/ProductDetail.vue'
 
 const router = createRouter({
   history: createWebHistory(),
@@ -23,6 +24,7 @@ const router = createRouter({
       children: [
         { path: '', name: 'Dashboard', component: Home },
         { path: 'shop', name: 'UserShop', component: Shop },
+        { path: 'shop/detail/:id', name: 'ProductDetail', component: ProductDetail },
         { path: 'cart', name: 'UserCart', component: Cart },
         { path: 'bill', name: 'UserBill', component: Bill },
         { path: 'orders', name: 'UserOrders', component: Orders },

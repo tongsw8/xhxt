@@ -61,7 +61,7 @@ let timer = null
 
 const statusTag = computed(() => {
   if (status.value === 1) return { text: '已支付', type: 'success' }
-  if (status.value === 2) return { text: '已关闭', type: 'info' }
+  if (status.value === 4) return { text: '已关闭', type: 'info' }
   return { text: '待支付', type: 'warning' }
 })
 

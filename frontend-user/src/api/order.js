@@ -1,7 +1,11 @@
 import http from './http'
 
-export function createOrderFromCart(addressId) {
-  return http.post('/user/order/create-from-cart', { addressId })
+export function createOrderFromCart(addressId, cardMessage, deliveryExpectTime) {
+  return http.post('/user/order/create-from-cart', { addressId, cardMessage, deliveryExpectTime })
+}
+
+export function createDirectOrder(addressId, productId, quantity, cardMessage, deliveryExpectTime) {
+  return http.post('/user/order/create-direct', { addressId, productId, quantity, cardMessage, deliveryExpectTime })
 }
 
 export function getOrderDetail(orderNo) {

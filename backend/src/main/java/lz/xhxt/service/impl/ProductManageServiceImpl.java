@@ -131,7 +131,8 @@ public class ProductManageServiceImpl implements ProductManageService {
             row.put("price", p.getPrice());
             row.put("stock", p.getStock());
             row.put("coverImg", p.getCoverImg());
-            row.put("detailText", p.getDetailText());
+            row.put("detailText", extractDetailText(p.getDetailText()));
+            row.put("detailImgs", parseDetailImgs(p.getDetailText()));
             row.put("status", p.getStatus());
             row.put("createTime", p.getCreateTime());
             row.put("updateTime", p.getUpdateTime());
@@ -178,7 +179,7 @@ public class ProductManageServiceImpl implements ProductManageService {
         p.setPrice(req.getPrice());
         p.setStock(req.getStock() == null ? 0 : req.getStock());
         p.setCoverImg(req.getCoverImg());
-        p.setDetailText(req.getDetailText());
+        p.setDetailText(mergeDetailText(req.getDetailText(), req.getDetailImgs()));
         p.setStatus(req.getStatus() == null ? 1 : req.getStatus());
         p.setUpdateTime(now);
 
@@ -210,5 +211,37 @@ public class ProductManageServiceImpl implements ProductManageService {
         if (id == null) return Result.error(ResultCode.ILLEGAL_PARAMETER.code(), "商品ID不能为空");
         productMapper.deleteById(id);
         return Result.ok(null);
+    }
+
+    private String mergeDetailText(String detailText, List<String> detailImgs) {
+        String text = detailText == null ? "" : detailText;
+        StringBuilder sb = new StringBuilder();
+        for (String img : detailImgs == null ? new ArrayList<String>() : detailImgs) {
+            if (img != null && !img.trim().isEmpty()) {
+                if (sb.length() > 0) sb.append(',');
+                sb.append(img.trim());
+            }
+        }
+        return text + "\n[IMGS]" + sb;
+    }
+
+    private String extractDetailText(String detailText) {
+        if (detailText == null) return "";
+        int idx = detailText.indexOf("\n[IMGS]");
+        return idx < 0 ? detailText : detailText.substring(0, idx);
+    }
+
+    private List<String> parseDetailImgs(String detailText) {
+        List<String> list = new ArrayList<>();
+        if (detailText == null) return list;
+        int idx = detailText.indexOf("\n[IMGS]");
+        if (idx < 0) return list;
+        String imgs = detailText.substring(idx + 7);
+        if (imgs.trim().isEmpty()) return list;
+        String[] arr = imgs.split(",");
+        for (String s : arr) {
+            if (s != null && !s.trim().isEmpty()) list.add(s.trim());
+        }
+        return list;
     }
 }
