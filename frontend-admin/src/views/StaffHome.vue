@@ -89,7 +89,9 @@ async function loadStats() {
   const uRes = await http.get('/staff/order/urge-count')
   urgentShipCount.value = Number(uRes.data?.data || 0)
 
-  pendingReplyCount.value = 0
+  const rRes = await http.get('/staff/reply/pending-count')
+  pendingReplyCount.value = Number(rRes.data?.data || 0)
+
   todayProcessed.value = shipped
 }
 

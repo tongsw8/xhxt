@@ -14,7 +14,7 @@ import StaffProfile from '../views/StaffProfile.vue'
 import AdminProfile from '../views/AdminProfile.vue'
 import AdminStats from '../views/AdminStats.vue'
 import AdminOrderList from '../views/AdminOrderList.vue'
-import ModulePlaceholder from '../views/ModulePlaceholder.vue'
+import StaffReplyManage from '../views/StaffReplyManage.vue'
 
 function getRole() {
   return localStorage.getItem('role') || null
@@ -54,12 +54,7 @@ const router = createRouter({
         { path: '', name: 'StaffDashboard', component: StaffHome, meta: { roles: ['STAFF'] } },
         { path: 'inventory', name: 'StaffInventory', component: InventoryManage, meta: { roles: ['STAFF'] } },
         { path: 'orders', name: 'StaffOrders', component: DeliveryManage, meta: { roles: ['STAFF'] } },
-        {
-          path: 'replies',
-          name: 'StaffReplies',
-          component: ModulePlaceholder,
-          meta: { roles: ['STAFF'], title: '社区客服互动', desc: '官方回复：新闻评论/论坛评论' },
-        },
+        { path: 'replies', name: 'StaffReplies', component: StaffReplyManage, meta: { roles: ['STAFF'] } },
         { path: 'profile', name: 'StaffProfile', component: StaffProfile, meta: { roles: ['STAFF'] } },
       ],
     },

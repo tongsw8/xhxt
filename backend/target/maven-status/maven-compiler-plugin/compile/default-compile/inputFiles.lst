@@ -72,7 +72,9 @@ E:\huhao\xhxt\backend\src\main\java\lz\xhxt\controller\ShopController.java
 E:\huhao\xhxt\backend\src\main\java\lz\xhxt\entity\UserOrder.java
 E:\huhao\xhxt\backend\src\main\java\lz\xhxt\dto\LoginRequest.java
 E:\huhao\xhxt\backend\src\main\java\lz\xhxt\config\MybatisPlusConfig.java
+E:\huhao\xhxt\backend\src\main\java\lz\xhxt\controller\StaffReplyController.java
 E:\huhao\xhxt\backend\src\main\java\lz\xhxt\service\ForumService.java
 E:\huhao\xhxt\backend\src\main\java\lz\xhxt\service\impl\UserServiceImpl.java
+E:\huhao\xhxt\backend\src\main\java\lz\xhxt\service\StaffReplyService.java
 E:\huhao\xhxt\backend\src\main\java\lz\xhxt\dto\ChangePasswordRequest.java
 E:\huhao\xhxt\backend\src\main\java\lz\xhxt\entity\UserAction.java
