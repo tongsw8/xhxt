@@ -15,6 +15,7 @@ import ForumPost from '../views/ForumPost.vue'
 import ProductDetail from '../views/ProductDetail.vue'
 import NoticeList from '../views/NoticeList.vue'
 import NoticeDetail from '../views/NoticeDetail.vue'
+import http from '../api/http'
 
 const router = createRouter({
   history: createWebHistory(),
@@ -39,16 +40,38 @@ const router = createRouter({
         { path: 'profile', name: 'UserProfile', component: Profile },
       ],
     },
+    {
+      path: '/preview/product/:id',
+      name: 'ProductDetailPreview',
+      component: ProductDetail,
+    },
+    {
+      path: '/preview/forum/:id',
+      name: 'ForumDetailPreview',
+      component: ForumDetail,
+    },
     { path: '/:pathMatch(.*)*', redirect: '/' },
   ],
 })
 
-router.beforeEach((to) => {
-  const tokenFromQuery = typeof to.query?.token === 'string' ? to.query.token : ''
-  if (tokenFromQuery) {
-    localStorage.setItem('token', tokenFromQuery)
+router.beforeEach(async (to) => {
+  const ticket = typeof to.query?.ticket === 'string' ? to.query.ticket : ''
+  if (ticket) {
+    const hasUserToken = !!localStorage.getItem('token')
+    if (!hasUserToken) {
+      try {
+        const { data } = await http.post('/auth/exchange-ticket', null, { params: { ticket } })
+        const token = data?.data || ''
+        if (token) sessionStorage.setItem('token', token)
+      } catch (e) {
+        // ignore and continue to normal auth guard
+      }
+    }
+    const query = { ...to.query }
+    delete query.ticket
+    return { path: to.path, query, hash: to.hash, replace: true }
   }
-  if (to.name !== 'Login' && !localStorage.getItem('token')) return { name: 'Login' }
+  if (to.name !== 'Login' && to.name !== 'ProductDetailPreview' && to.name !== 'ForumDetailPreview' && !sessionStorage.getItem('token') && !localStorage.getItem('token')) return { name: 'Login' }
   return true
 })
 

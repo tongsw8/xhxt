@@ -5,7 +5,9 @@ import lz.xhxt.common.Result;
 import lz.xhxt.entity.Banner;
 import lz.xhxt.entity.NewsInfo;
 import lz.xhxt.entity.Notice;
+import lz.xhxt.entity.ProductInfo;
 import lz.xhxt.mapper.BannerMapper;
+import lz.xhxt.mapper.ProductInfoMapper;
 import lz.xhxt.service.ContentService;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -30,6 +32,9 @@ public class ContentController {
     @Resource
     private BannerMapper bannerMapper;
 
+    @Resource
+    private ProductInfoMapper productInfoMapper;
+
     @GetMapping("/banners")
     public List<Banner> banners() {
         return contentService.getActiveBanners();
@@ -45,6 +50,15 @@ public class ContentController {
 
     @PostMapping("/admin/banner/save")
     public Result saveBanner(@RequestBody Banner banner) {
+        if (banner == null) return Result.error(400, "参数不完整");
+        Long productId = parseLinkedProductId(banner.getLinkUrl());
+        if (banner.getLinkUrl() != null && !banner.getLinkUrl().trim().isEmpty() && productId == null) {
+            return Result.error(400, "轮播跳转仅支持 /shop/detail/{商品ID} 格式");
+        }
+        if (productId != null) {
+            ProductInfo p = productInfoMapper.selectById(productId);
+            if (p == null) return Result.error(400, "关联商品不存在");
+        }
         if (banner.getCreateTime() == null) banner.setCreateTime(new Date());
         contentService.saveBanner(banner);
         return Result.ok(null);
@@ -117,5 +131,17 @@ public class ContentController {
     @PostMapping("/admin/news")
     public void saveNews(@RequestBody NewsInfo news) {
         contentService.saveNews(news);
+    }
+
+    private Long parseLinkedProductId(String linkUrl) {
+        if (linkUrl == null || linkUrl.trim().isEmpty()) return null;
+        String s = linkUrl.trim();
+        String prefix = "/shop/detail/";
+        if (!s.startsWith(prefix)) return null;
+        try {
+            return Long.parseLong(s.substring(prefix.length()));
+        } catch (Exception e) {
+            return null;
+        }
     }
 }

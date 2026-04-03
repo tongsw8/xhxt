@@ -296,7 +296,7 @@ public class OrderServiceImpl implements OrderService {
             return Result.error(ResultCode.ILLEGAL_PARAMETER.code(), "参数不完整");
         }
         Comment c = commentMapper.selectById(commentId);
-        if (c == null || !"PRODUCT_REVIEW".equals(c.getTargetType())) {
+        if (c == null || !("PRODUCT_REVIEW".equals(c.getTargetType()) || "ORDER_PRODUCT".equals(c.getTargetType()))) {
             return Result.error(ResultCode.ILLEGAL_PARAMETER.code(), "评价不存在");
         }
         LambdaQueryWrapper<UserAction> q = new LambdaQueryWrapper<UserAction>()
@@ -322,7 +322,7 @@ public class OrderServiceImpl implements OrderService {
     public Result listProductReviews(Long userId, Long productId) {
         if (productId == null) return Result.error(ResultCode.ILLEGAL_PARAMETER.code(), "参数不完整");
         List<Comment> comments = commentMapper.selectList(new LambdaQueryWrapper<Comment>()
-                .eq(Comment::getTargetType, "PRODUCT_REVIEW")
+                .in(Comment::getTargetType, "PRODUCT_REVIEW", "ORDER_PRODUCT")
                 .eq(Comment::getTargetId, productId)
                 .eq(Comment::getStatus, 1)
                 .orderByAsc(Comment::getCreateTime));
@@ -335,6 +335,7 @@ public class OrderServiceImpl implements OrderService {
         List<Comment> roots = comments.stream().filter(c -> {
             if (c.getId() == null) return false;
             if (c.getIsStaff() != null && c.getIsStaff() == 1) return false;
+            if ("PRODUCT_REVIEW".equals(c.getTargetType())) return true;
             Long p = c.getParentId();
             return p == null || p == 0L || !allCommentIds.contains(p);
         }).collect(java.util.stream.Collectors.toList());
@@ -342,14 +343,14 @@ public class OrderServiceImpl implements OrderService {
         for (Comment c : roots) {
             User u = userMapper.selectById(c.getUserId());
             int likeCount = userActionMapper.selectCount(new LambdaQueryWrapper<UserAction>()
-                    .eq(UserAction::getTargetType, "PRODUCT_REVIEW")
+                    .in(UserAction::getTargetType, "PRODUCT_REVIEW", "ORDER_COMMENT")
                     .eq(UserAction::getTargetId, c.getId())
                     .eq(UserAction::getActionType, "LIKE"));
             boolean liked = false;
             if (userId != null) {
                 Integer likedCnt = userActionMapper.selectCount(new LambdaQueryWrapper<UserAction>()
                         .eq(UserAction::getUserId, userId)
-                        .eq(UserAction::getTargetType, "PRODUCT_REVIEW")
+                        .in(UserAction::getTargetType, "PRODUCT_REVIEW", "ORDER_COMMENT")
                         .eq(UserAction::getTargetId, c.getId())
                         .eq(UserAction::getActionType, "LIKE"));
                 liked = likedCnt != null && likedCnt > 0;
@@ -403,7 +404,7 @@ public class OrderServiceImpl implements OrderService {
         }
         Integer dup = commentMapper.selectCount(new LambdaQueryWrapper<Comment>()
                 .eq(Comment::getUserId, userId)
-                .eq(Comment::getTargetType, "PRODUCT_REVIEW")
+                .in(Comment::getTargetType, "PRODUCT_REVIEW", "ORDER_PRODUCT")
                 .eq(Comment::getTargetId, productId)
                 .eq(Comment::getParentId, order.getId()));
         if (dup != null && dup > 0) {

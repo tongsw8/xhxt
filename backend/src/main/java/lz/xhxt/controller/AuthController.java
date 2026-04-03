@@ -4,24 +4,35 @@ import lz.xhxt.common.Result;
 import lz.xhxt.common.ResultCode;
 import lz.xhxt.dto.LoginRequest;
 import lz.xhxt.dto.RegisterRequest;
+import lz.xhxt.service.JwtService;
 import lz.xhxt.service.UserService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import javax.annotation.Resource;
+import java.util.Map;
+import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 
 @RestController
 @RequestMapping("/api/auth")
 public class AuthController {
 
     private static final Logger log = LoggerFactory.getLogger(AuthController.class);
+    private static final long CROSS_TICKET_EXPIRE_MS = 60_000L;
+    private static final Map<String, TicketData> CROSS_TICKET_STORE = new ConcurrentHashMap<>();
 
     @Resource
     private UserService userService;
+
+    @Resource
+    private JwtService jwtService;
 
     @PostMapping("/login")
     public Result login(@RequestBody LoginRequest req) {
@@ -32,7 +43,6 @@ public class AuthController {
         String account = req.getAccount().trim();
         String password = req.getPassword();
 
-        // 防止控制台泄露明文密码：只打印长度/掩码
         String masked = maskPassword(password);
         log.info("用户登录-请求参数：account={}, password={}", account, masked);
 
@@ -75,6 +85,47 @@ public class AuthController {
         return result;
     }
 
+    @PostMapping("/cross-ticket")
+    public Result createCrossTicket(@RequestHeader(value = "Authorization", required = false) String authorization) {
+        Long userId;
+        try {
+            userId = jwtService.parseUserId(authorization);
+        } catch (Exception e) {
+            userId = null;
+        }
+        if (userId == null) return Result.error(ResultCode.ILLEGAL_PARAMETER.code(), "请先登录");
+
+        String pureToken = pureBearer(authorization);
+        if (isBlank(pureToken)) return Result.error(ResultCode.ILLEGAL_PARAMETER.code(), "登录态无效");
+
+        clearExpiredTickets();
+        String ticket = UUID.randomUUID().toString().replace("-", "");
+        CROSS_TICKET_STORE.put(ticket, new TicketData(pureToken, System.currentTimeMillis() + CROSS_TICKET_EXPIRE_MS));
+        return Result.ok(ticket);
+    }
+
+    @PostMapping("/exchange-ticket")
+    public Result exchangeTicket(@RequestParam String ticket) {
+        if (isBlank(ticket)) return Result.error(ResultCode.ILLEGAL_PARAMETER.code(), "参数不完整");
+        TicketData data = CROSS_TICKET_STORE.remove(ticket.trim());
+        if (data == null || data.expireAt < System.currentTimeMillis()) {
+            return Result.error(ResultCode.ILLEGAL_PARAMETER.code(), "跳转凭证已失效");
+        }
+        return Result.ok(data.token);
+    }
+
+    private void clearExpiredTickets() {
+        long now = System.currentTimeMillis();
+        CROSS_TICKET_STORE.entrySet().removeIf(e -> e.getValue() == null || e.getValue().expireAt < now);
+    }
+
+    private String pureBearer(String authorization) {
+        if (authorization == null) return null;
+        String s = authorization.trim();
+        if (s.startsWith("Bearer ")) return s.substring(7);
+        return s;
+    }
+
     private static boolean isBlank(String s) {
         return s == null || s.trim().isEmpty();
     }
@@ -84,5 +135,15 @@ public class AuthController {
         int len = password.length();
         if (len <= 2) return "**";
         return password.charAt(0) + "***(" + len + " chars)";
+    }
+
+    private static class TicketData {
+        private final String token;
+        private final long expireAt;
+
+        private TicketData(String token, long expireAt) {
+            this.token = token;
+            this.expireAt = expireAt;
+        }
     }
 }

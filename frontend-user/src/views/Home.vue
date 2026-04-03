@@ -78,8 +78,9 @@ async function loadStats() {
 function go(path) { router.push(path) }
 
 function onBannerClick(b) {
-  if (b?.linkUrl && /^\/shop\/detail\/\d+/.test(b.linkUrl)) {
-    router.push(b.linkUrl)
+  const m = String(b?.linkUrl || '').match(/^\/shop\/detail\/(\d+)/)
+  if (m) {
+    router.push(`/shop/detail/${m[1]}`)
     return
   }
   go('/shop')

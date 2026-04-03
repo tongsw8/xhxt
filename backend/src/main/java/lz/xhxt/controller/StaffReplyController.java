@@ -80,7 +80,7 @@ public class StaffReplyController {
             Map<String, Object> row = new HashMap<>();
             row.put("id", c.getId());
             row.put("content", c.getContent());
-            row.put("source", c.getTargetType());
+            row.put("source", normalizeSource(c.getTargetType()));
             row.put("sourceTitle", sourceTitle(c.getTargetType(), c.getTargetId()));
             row.put("targetId", c.getTargetId());
             row.put("sourcePath", sourcePath(c.getTargetType(), c.getTargetId()));
@@ -112,7 +112,7 @@ public class StaffReplyController {
         List<Map<String, Object>> list = comments.stream().map(this::toCommentRow).collect(Collectors.toList());
 
         Map<String, Object> data = new HashMap<>();
-        data.put("source", root.getTargetType());
+        data.put("source", normalizeSource(root.getTargetType()));
         data.put("sourceTitle", sourceTitle(root.getTargetType(), root.getTargetId()));
         data.put("targetId", root.getTargetId());
         data.put("sourcePath", sourcePath(root.getTargetType(), root.getTargetId()));
@@ -281,6 +281,12 @@ public class StaffReplyController {
         if ("POST".equals(source)) return "/community/detail/" + targetId;
         if ("ORDER_PRODUCT".equals(source) || "PRODUCT_REVIEW".equals(source)) return "/shop/detail/" + targetId;
         return "/";
+    }
+
+    private String normalizeSource(String source) {
+        if ("POST".equals(source)) return "POST";
+        if ("ORDER_PRODUCT".equals(source) || "PRODUCT_REVIEW".equals(source)) return "ORDER_PRODUCT";
+        return source;
     }
 
     private Map<String, Object> toCommentRow(Comment c) {

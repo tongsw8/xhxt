@@ -13,23 +13,28 @@
         <div><div class="pname">{{ post.product.name }}</div><div class="pprice">¥{{ Number(post.product.price || 0).toFixed(2) }}</div></div>
       </div>
 
-      <el-button @click="action('LIKE')">点赞</el-button>
-      <el-button @click="action('COLLECT')">收藏</el-button>
+      <template v-if="!isStaffPreview">
+        <el-button @click="action('LIKE')">点赞</el-button>
+        <el-button @click="action('COLLECT')">收藏</el-button>
+      </template>
+      <div v-else class="preview-tip">客服预览模式：仅查看帖子与评论，不可互动操作</div>
     </el-card>
 
     <el-card style="margin-top:12px">
       <template #header>评论</template>
-      <el-input v-model="txt" type="textarea" :rows="3" placeholder="发表评论" />
-      <el-button type="primary" style="margin-top:8px" @click="comment(0)">发表评论</el-button>
+      <template v-if="!isStaffPreview">
+        <el-input v-model="txt" type="textarea" :rows="3" placeholder="发表评论" />
+        <el-button type="primary" style="margin-top:8px" @click="comment(0)">发表评论</el-button>
+      </template>
 
       <div v-for="c in comments" :key="c.id" class="c-item">
         <div class="c-head">{{ c.userName }} · {{ c.createTime }}</div>
         <div class="c-content">{{ c.content }}</div>
-        <div class="c-actions">
+        <div class="c-actions" v-if="!isStaffPreview">
           <el-button size="small" text @click="replyTo(c)">回复</el-button>
           <el-button size="small" text type="danger" v-if="c.canDelete" @click="delComment(c.id)">删除</el-button>
         </div>
-        <div v-if="replyId===c.id" style="margin:6px 0 8px 0">
+        <div v-if="!isStaffPreview && replyId===c.id" style="margin:6px 0 8px 0">
           <el-input v-model="replyText" placeholder="回复内容" />
           <el-button size="small" type="primary" style="margin-top:6px" @click="comment(c.id)">发送回复</el-button>
         </div>
@@ -37,7 +42,7 @@
         <div v-for="r in c.replies || []" :key="r.id" class="r-item">
           <div class="c-head">{{ r.userName }} · {{ r.createTime }}</div>
           <div class="c-content">{{ r.content }}</div>
-          <el-button size="small" text type="danger" v-if="r.canDelete" @click="delComment(r.id)">删除</el-button>
+          <el-button size="small" text type="danger" v-if="!isStaffPreview && r.canDelete" @click="delComment(r.id)">删除</el-button>
         </div>
       </div>
     </el-card>
@@ -45,7 +50,7 @@
 </template>
 
 <script setup>
-import { onMounted, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { addForumComment, deleteForumComment, getForumPostDetail, listForumComments, toggleForumAction } from '../api/forum'
@@ -57,6 +62,7 @@ const comments = ref([])
 const txt = ref('')
 const replyId = ref(0)
 const replyText = ref('')
+const isStaffPreview = computed(() => String(route.query?.staffPreview || '') === '1')
 
 function toImage(path) {
   if (!path) return ''
@@ -65,7 +71,13 @@ function toImage(path) {
   return `${base}/file/flower/${path}`
 }
 
-function goProduct(id) { router.push(`/shop/detail/${id}`) }
+function goProduct(id) {
+  if (isStaffPreview.value) {
+    router.push(`/preview/product/${id}?staffPreview=1`)
+    return
+  }
+  router.push(`/shop/detail/${id}`)
+}
 
 const load = async () => {
   const id = route.params.id
@@ -107,4 +119,5 @@ onMounted(load)
 .c-head{font-size:12px;color:#94a3b8}
 .c-content{margin:4px 0}
 .r-item{margin-left:18px;margin-top:8px;padding-left:10px;border-left:2px solid #e5e7eb}
+.preview-tip { margin-top: 10px; color: #64748b; font-size: 13px; }
 </style>

@@ -136,7 +136,24 @@ async function uploadNoticeImage(option) {
   noticeDialog.form.coverImg = res.data?.data?.url || ''
 }
 
-async function saveBanner() { await http.post('/content/admin/banner/save', bannerDialog.form); ElMessage.success('保存成功'); bannerDialog.visible = false; await loadBanners() }
+async function saveBanner() {
+  if (!bannerDialog.form.title || !bannerDialog.form.title.trim()) {
+    ElMessage.warning('请输入轮播图标题')
+    return
+  }
+  if (!bannerDialog.form.imgUrl) {
+    ElMessage.warning('请上传轮播图图片')
+    return
+  }
+  if (bannerDialog.form.linkUrl && !/^\/shop\/detail\/\d+$/.test(bannerDialog.form.linkUrl)) {
+    ElMessage.warning('关联商品链接格式不正确')
+    return
+  }
+  await http.post('/content/admin/banner/save', bannerDialog.form)
+  ElMessage.success('保存成功')
+  bannerDialog.visible = false
+  await loadBanners()
+}
 async function saveNotice() { await http.post('/content/admin/notice/save', noticeDialog.form); ElMessage.success('保存成功'); noticeDialog.visible = false; await loadNotices() }
 
 async function toggleBanner(row, v) { await http.post('/content/admin/banner/status', null, { params: { id: row.id, status: v ? 1 : 0 } }); ElMessage.success('状态已更新'); await loadBanners() }

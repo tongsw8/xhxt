@@ -54,6 +54,7 @@
           <el-button @click="fillByCurrentLocation">定位填充省市区</el-button>
           <el-button type="primary" plain @click="openMapPicker">打开地图选点</el-button>
           <span class="hint">地图选点会自动填充省市区和详细地址</span>
+          <div class="geo-tip" v-if="geoTip">{{ geoTip }}</div>
         </el-form-item>
 
         <el-form-item label="省"><el-input v-model="addrForm.province" /></el-form-item>
@@ -76,6 +77,20 @@
         <el-button type="primary" @click="confirmMapAddress">使用该位置</el-button>
       </template>
     </el-dialog>
+
+    <el-dialog v-model="permissionGuideVisible" title="如何开启定位权限" width="520px">
+      <div class="perm-guide">
+        <p>检测到你拒绝了浏览器定位权限，可按以下步骤开启：</p>
+        <ol>
+          <li>点击浏览器地址栏左侧的「锁」图标或站点信息图标。</li>
+          <li>找到「位置」权限，改为「允许」，然后刷新当前页面。</li>
+        </ol>
+        <p>若不方便开启权限，也可以直接使用「地图选点」或手动填写地址。</p>
+      </div>
+      <template #footer>
+        <el-button @click="permissionGuideVisible=false">我知道了</el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
@@ -93,6 +108,7 @@ const addressList = ref([])
 const dialogVisible = ref(false)
 const mapDialogVisible = ref(false)
 const selectedMapAddress = ref(null)
+const geoTip = ref('')
 const addrForm = reactive({ id: null, receiverName: '', receiverPhone: '', province: '', city: '', district: '', detailAddress: '', isDefaultFlag: false })
 
 let mapInstance = null
@@ -125,6 +141,7 @@ async function onChangePwd() {
 }
 
 function openAddress(row) {
+  geoTip.value = ''
   if (row) {
     Object.assign(addrForm, { ...row, isDefaultFlag: row.isDefault === 1 })
   } else {
@@ -218,13 +235,16 @@ function reverseGeocodeByLatLng(lat, lng) {
 }
 
 async function fillByCurrentLocation() {
+  geoTip.value = ''
   if (!navigator.geolocation) {
+    geoTip.value = '当前浏览器不支持定位，请改用地图选点或手动填写地址。'
     ElMessage.error('当前浏览器不支持定位')
     return
   }
   try {
     await ensureMapSdk()
   } catch (e) {
+    geoTip.value = '地图能力初始化失败，请检查地图 Key 配置。'
     ElMessage.error(e.message)
     return
   }
@@ -235,17 +255,31 @@ async function fillByCurrentLocation() {
         addrForm.province = parsed.province
         addrForm.city = parsed.city
         addrForm.district = parsed.district
+        geoTip.value = '定位成功：已自动填充省市区，可继续补充详细地址。'
         ElMessage.success('已自动填充省市区，请补充详细地址')
       } catch (e) {
+        geoTip.value = '定位成功但地址解析失败，请改用地图选点。'
         ElMessage.error(e.message || '定位解析失败')
       }
     },
-    (err) => ElMessage.error(err.message || '定位失败'),
+    (err) => {
+      const msg = err?.code === 1
+        ? '你已拒绝定位权限。请在浏览器地址栏左侧“站点设置”中将位置权限改为允许。'
+        : err?.code === 2
+          ? '定位服务暂不可用，请稍后重试或使用地图选点。'
+          : err?.code === 3
+            ? '定位超时，请重试或使用地图选点。'
+            : (err?.message || '定位失败')
+      if (err?.code === 1) permissionGuideVisible.value = true
+      geoTip.value = msg
+      ElMessage.error(msg)
+    },
     { enableHighAccuracy: true, timeout: 10000 }
   )
 }
 
 function openMapPicker() {
+  geoTip.value = ''
   mapDialogVisible.value = true
 }
 
@@ -324,6 +358,9 @@ onMounted(async () => {
 
 <style scoped>
 .hint { margin-left: 10px; color: #94a3b8; font-size: 12px; }
+.geo-tip { margin-top: 6px; color: #475569; font-size: 12px; line-height: 1.5; }
+.perm-guide { color: #334155; line-height: 1.8; font-size: 14px; }
+.perm-guide ol { margin: 8px 0 8px 20px; }
 .map-box { width: 100%; height: 420px; border-radius: 8px; overflow: hidden; border: 1px solid #e5e7eb; }
 .map-result { margin-top: 10px; color: #334155; }
 </style>

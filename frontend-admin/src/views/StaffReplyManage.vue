@@ -70,6 +70,25 @@
         <el-button type="primary" @click="submitReply">提交回复</el-button>
       </template>
     </el-dialog>
+
+    <el-dialog v-model="sourceVisible" title="来源详情" width="1100px" top="4vh" destroy-on-close class="source-dialog">
+      <template v-if="(sourceMode==='product' || sourceMode==='forum') && sourceUrl">
+        <iframe :src="sourceUrl" class="source-frame"></iframe>
+      </template>
+      <template v-else>
+        <el-descriptions :column="2" border style="margin-bottom: 12px">
+          <el-descriptions-item label="来源类型">{{ sourcePreview.source === 'POST' ? '论坛' : '商品' }}</el-descriptions-item>
+          <el-descriptions-item label="来源标题">{{ sourcePreview.sourceTitle || '-' }}</el-descriptions-item>
+        </el-descriptions>
+        <div v-if="sourcePreview.rows.length">
+          <div v-for="it in sourcePreview.rows" :key="it.id" style="padding:10px 0;border-bottom:1px dashed #e5e7eb">
+            <div style="font-size:12px;color:#94a3b8">{{ it.userName }} · {{ it.createTime }} <el-tag v-if="it.isStaff===1" size="small" type="success">官方</el-tag></div>
+            <div style="margin-top:4px">{{ it.content }}</div>
+          </div>
+        </div>
+        <el-empty v-else description="暂无可预览内容" />
+      </template>
+    </el-dialog>
   </el-card>
 </template>
 
@@ -85,7 +104,11 @@ const keyword = ref('')
 const rows = ref([])
 const threadVisible = ref(false)
 const replyVisible = ref(false)
-const threadData = ref({ sourceTitle: '', sourcePath: '/', rows: [] })
+const sourceVisible = ref(false)
+const sourceMode = ref('thread')
+const sourceUrl = ref('')
+const sourcePreview = ref({ source: '', sourceTitle: '', rows: [] })
+const threadData = ref({ source: '', sourceTitle: '', sourcePath: '/', rows: [] })
 const currentRootId = ref(null)
 const replyContent = ref('')
 const replyTpl = [
@@ -117,7 +140,7 @@ async function load() {
 
 async function openThread(row) {
   const { data } = await http.get('/staff/reply/thread', { params: { rootId: row.id } })
-  threadData.value = data.data || { sourceTitle: '', sourcePath: '/', rows: [] }
+  threadData.value = data.data || { source: '', sourceTitle: '', sourcePath: '/', rows: [] }
   threadVisible.value = true
 }
 
@@ -150,19 +173,63 @@ async function shield(row) {
   await load()
 }
 
-function openSource(row) {
-  if (!row?.sourcePath) return
-  const token = localStorage.getItem('token') || ''
-  const sep = row.sourcePath.includes('?') ? '&' : '?'
-  window.open(`${userBase}${row.sourcePath}${sep}token=${encodeURIComponent(token)}`, '_blank')
+function makeStaffPreviewUrl(sourcePath) {
+  const s = String(sourcePath || '')
+  const pm = s.match(/^\/shop\/detail\/(\d+)/)
+  if (pm) return `${userBase}/preview/product/${pm[1]}?staffPreview=1`
+  const fm = s.match(/^\/community\/detail\/(\d+)/)
+  if (fm) return `${userBase}/preview/forum/${fm[1]}?staffPreview=1`
+  return `${userBase}${sourcePath}`
 }
 
-function openSourceByThread() {
-  if (!threadData.value?.sourcePath) return
-  const token = localStorage.getItem('token') || ''
-  const sep = threadData.value.sourcePath.includes('?') ? '&' : '?'
-  window.open(`${userBase}${threadData.value.sourcePath}${sep}token=${encodeURIComponent(token)}`, '_blank')
+async function openSource(row) {
+  if (!row?.id) return
+  if ((row.source === 'ORDER_PRODUCT' || row.source === 'POST') && row.sourcePath) {
+    sourceMode.value = row.source === 'ORDER_PRODUCT' ? 'product' : 'forum'
+    sourceUrl.value = makeStaffPreviewUrl(row.sourcePath)
+    sourceVisible.value = true
+    return
+  }
+  const { data } = await http.get('/staff/reply/thread', { params: { rootId: row.id } })
+  const d = data?.data || {}
+  sourceMode.value = 'thread'
+  sourcePreview.value = {
+    source: row.source,
+    sourceTitle: d.sourceTitle || row.sourceTitle || '',
+    rows: d.rows || [],
+  }
+  sourceVisible.value = true
+}
+
+async function openSourceByThread() {
+  if ((threadData.value?.source === 'ORDER_PRODUCT' || threadData.value?.source === 'POST') && threadData.value?.sourcePath) {
+    sourceMode.value = threadData.value.source === 'ORDER_PRODUCT' ? 'product' : 'forum'
+    sourceUrl.value = makeStaffPreviewUrl(threadData.value.sourcePath)
+    sourceVisible.value = true
+    return
+  }
+  sourceMode.value = 'thread'
+  sourcePreview.value = {
+    source: threadData.value?.source || '',
+    sourceTitle: threadData.value?.sourceTitle || '',
+    rows: threadData.value?.rows || [],
+  }
+  sourceVisible.value = true
 }
 
 onMounted(load)
 </script>
+
+<style scoped>
+.source-dialog :deep(.el-dialog__body) {
+  max-height: 80vh;
+  overflow-y: auto;
+}
+.source-frame {
+  width: 100%;
+  height: 82vh;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  background: #fff;
+}
+</style>

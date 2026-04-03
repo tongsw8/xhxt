@@ -14,14 +14,15 @@
           <p class="desc">{{ product.detailText || '暂无详情' }}</p>
           <div class="price">¥{{ Number(product.price || 0).toFixed(2) }}</div>
           <div class="stock">库存：{{ product.stock }}</div>
-          <div class="buy-row">
+          <div class="buy-row" v-if="!isStaffPreview">
             <span>购买数量：</span>
             <el-input-number v-model="quantity" :min="1" :max="Math.max(1, Number(product.stock || 0))" />
           </div>
-          <div class="actions">
+          <div class="actions" v-if="!isStaffPreview">
             <el-button @click="addCart">加入购物车</el-button>
             <el-button type="primary" @click="buyNow">立即购买</el-button>
           </div>
+          <div v-else class="preview-tip">客服预览模式：仅查看商品与评价，不可下单操作</div>
         </div>
       </div>
     </el-card>
@@ -37,7 +38,8 @@
       <div v-for="r in reviews" :key="r.id" class="review-item">
         <div class="r-head">{{ r.userName }} · {{ r.createTime }}</div>
         <div class="r-content">{{ r.content }}</div>
-        <el-button size="small" text @click="onLikeReview(r)">👍 {{ r.likeCount || 0 }}{{ r.liked ? '（已赞）' : '' }}</el-button>
+        <el-button v-if="!isStaffPreview" size="small" text @click="onLikeReview(r)">👍 {{ r.likeCount || 0 }}{{ r.liked ? '（已赞）' : '' }}</el-button>
+        <span v-else class="like-readonly">👍 {{ r.likeCount || 0 }}</span>
         <div v-if="(r.replies || []).length" class="reply-block">
           <div v-for="rp in r.replies" :key="rp.id" class="reply-item">
             <span class="reply-tag">官方回复</span>
@@ -89,6 +91,7 @@ const selectedAddressId = ref(null)
 const cardMessage = ref('')
 const deliveryExpectTime = ref('')
 const reviews = ref([])
+const isStaffPreview = computed(() => String(route.query?.staffPreview || '') === '1')
 
 const backendOrigin = (() => {
   const base = import.meta.env.VITE_BASE_API || ''
@@ -182,4 +185,6 @@ onMounted(loadDetail)
 .review-item { padding: 10px 0; border-bottom: 1px dashed #e5e7eb; }
 .r-head { color:#64748b; font-size: 12px; margin-bottom: 4px; }
 .r-content { color:#0f172a; margin-bottom: 6px; }
+.preview-tip { margin-top: 12px; color: #64748b; font-size: 13px; }
+.like-readonly { color:#64748b; font-size: 12px; }
 </style>
